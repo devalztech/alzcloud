@@ -98,13 +98,15 @@ exports.viewFile = async (req, res) => {
 
     const file = rows[0];
 
-    // Use message_id for the /dl/ streaming route (NOT file_id — that's Telegram's internal ID)
+    // /dl/ increments download count; /preview/ streams without counting (used for image/video/audio preview)
     const url = `/dl/${file.message_id}`;
+    const previewUrl = `/preview/${file.message_id}`;
 
     res.render('pages/file', {
       title: file.original_name,
       file,
       url,
+      previewUrl,
       fileSize: bytes(Number(file.size))
     });
   } catch (e) {

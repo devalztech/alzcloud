@@ -32,6 +32,18 @@ router.get('/dl/:messageId', async (req, res) => {
   }
 });
 
+// Preview route — streams file WITHOUT incrementing download count (used for image/video/audio preview)
+router.get('/preview/:messageId', async (req, res) => {
+  try {
+    await streamFileToResponse(req.params.messageId, res);
+  } catch (e) {
+    console.error('Preview stream error:', e.message);
+    if (!res.headersSent) {
+      res.status(500).send('Could not preview file: ' + e.message);
+    }
+  }
+});
+
 // Protected
 router.get('/dashboard', requireAuth, file.getDashboard);
 router.post('/upload', requireAuth, file.uploadFile);

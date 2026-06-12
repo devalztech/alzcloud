@@ -6,6 +6,11 @@
   <title><%= title %> — <%= appName %></title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☁️</text></svg>">
+  <style>
+    html, body { height: 100%; }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+    body > main { flex: 1; }
+  </style>
 </head>
 <body>
 
@@ -24,7 +29,9 @@
   </div>
 </nav>
 
+<main>
 <%- body %>
+</main>
 
 <footer>
   <p>© <%= new Date().getFullYear() %> <%= appName %> &middot; Powered by Alz-Tech</p>
