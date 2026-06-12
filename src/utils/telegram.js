@@ -30,7 +30,8 @@ async function getClient() {
     retryDelay: 1000,
     autoReconnect: true,
     // Suppress interactive prompts in production
-    baseLogger: { log: () => {} }
+    // GramJS calls .info(), .debug(), .warn(), .error() internally — stub all of them
+    baseLogger: { log: () => {}, info: () => {}, debug: () => {}, warn: () => {}, error: () => {} }
   });
 
   await _client.connect();
