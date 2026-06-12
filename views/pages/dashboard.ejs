@@ -1,6 +1,8 @@
 <%
-const planColors = { free: '#8888a8', pro: '#6c63ff', business: '#22d3a0' };
+const planColors = { free: '#8888a8', starter: '#6c63ff', pro: '#22d3a0' };
 const planColor = planColors[user.plan] || planColors.free;
+var totalDl = 0;
+for (var i = 0; i < files.length; i++) totalDl += files[i].downloads;
 %>
 <!DOCTYPE html>
 <html lang="en">
@@ -12,27 +14,27 @@ const planColor = planColors[user.plan] || planColors.free;
 </head>
 <body>
 <nav>
-  <a href="/" class="logo">☁️ <span><%= appName %></span></a>
+  <a href="/" class="logo">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+    <span><%= appName %></span>
+  </a>
   <div class="nav-links">
     <a href="/plans">Pricing</a>
+    <a href="/api">API Docs</a>
     <a href="/dashboard">Dashboard</a>
-    <% if (user.is_admin) { %><a href="/admin">Admin</a><% } %>
+    <% if (user.is_admin) { %><a href="/<%= locals.adminSlug %>">Admin</a><% } %>
     <a href="/logout" class="btn btn-outline btn-sm">Sign out</a>
   </div>
 </nav>
 
 <div class="container page">
 
-  <% if (locals.upgraded) { %>
-    <div class="alert alert-success">🎉 Plan upgraded successfully! Enjoy your new limits.</div>
-  <% } %>
-
   <div class="flex items-center justify-between" style="margin-bottom:1.5rem">
     <div>
       <h2>Dashboard</h2>
       <p class="text-muted text-sm">Welcome back, <strong><%= user.username %></strong></p>
     </div>
-    <span style="background:<%= planColor %>22;color:<%= planColor %>;border:1px solid <%= planColor %>44;padding:.25rem .75rem;border-radius:99px;font-size:.8rem;font-weight:600;text-transform:uppercase">
+    <span style="background:<%=planColor%>22;color:<%=planColor%>;border:1px solid <%=planColor%>44;padding:.25rem .75rem;border-radius:99px;font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">
       <%= user.plan %>
     </span>
   </div>
@@ -44,30 +46,42 @@ const planColor = planColors[user.plan] || planColors.free;
     </div>
     <div class="stat-card">
       <div class="stat-val"><%= storageUsed %></div>
-      <div class="stat-label">Storage used of <%= storageMax %></div>
+      <div class="stat-label">of <%= storageMax %> storage</div>
       <div class="progress-bar mt-1">
         <div class="progress-fill" style="width:<%= storagePercent %>%"></div>
       </div>
     </div>
     <div class="stat-card">
-      <div class="stat-val"><%
-        var totalDl = 0;
-        for (var i = 0; i < files.length; i++) totalDl += files[i].downloads;
-      %><%= totalDl %></div>
+      <div class="stat-val"><%= totalDl %></div>
       <div class="stat-label">Total downloads</div>
     </div>
   </div>
 
+  <% if (user.plan !== 'free') { %>
+  <div class="card" style="margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+    <div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:.2rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Your API Key</div>
+      <code style="font-size:.82rem;color:var(--accent2);word-break:break-all"><%= user.api_key || 'Not generated yet' %></code>
+    </div>
+    <button class="btn btn-outline btn-sm" data-copy="<%= user.api_key %>">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      Copy Key
+    </button>
+  </div>
+  <% } %>
+
   <!-- Upload Zone -->
   <div class="card" style="margin-bottom:1.5rem">
     <div id="upload-zone">
-      <div class="upload-icon">📂</div>
+      <div class="upload-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </div>
       <p><strong>Click to upload</strong> or drag and drop</p>
       <p class="text-sm" style="margin-top:.35rem">Any file type &middot; Max <%= fileSizeLimit %> per file</p>
       <input type="file" id="file-input" style="display:none" multiple>
     </div>
     <div id="upload-progress" style="display:none;margin-top:1rem">
-      <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+      <div class="progress-bar"><div class="progress-fill" id="upload-bar" style="width:0%"></div></div>
       <p class="text-sm text-muted mt-1" id="upload-status">Uploading...</p>
     </div>
   </div>
@@ -81,7 +95,7 @@ const planColor = planColors[user.plan] || planColors.free;
 
     <% if (files.length === 0) { %>
       <div style="text-align:center;padding:3rem 1rem;color:var(--muted)">
-        <div style="font-size:2rem;margin-bottom:.5rem">📭</div>
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:.75rem;opacity:.4"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
         <p>No files yet. Upload your first file above.</p>
       </div>
     <% } else { %>
@@ -101,16 +115,25 @@ const planColor = planColors[user.plan] || planColors.free;
             <tr>
               <td>
                 <div class="file-name" title="<%= f.original_name %>"><%= f.original_name %></div>
-                <div class="text-sm text-muted" style="font-family:'JetBrains Mono',monospace;font-size:.75rem"><%= f.slug %></div>
+                <div class="text-sm text-muted" style="font-family:'JetBrains Mono',monospace;font-size:.72rem"><%= f.slug %></div>
               </td>
               <td><span class="file-type-badge badge-<%= f.file_type %>"><%= f.file_type %></span></td>
               <td class="text-muted"><%= f.sizeFormatted %></td>
               <td class="text-muted"><%= f.downloads %></td>
               <td>
-                <div class="flex gap-1">
-                  <a href="/f/<%= f.slug %>" target="_blank" class="btn btn-outline btn-sm">View</a>
-                  <button class="btn btn-outline btn-sm copy-btn" data-url="<%= appUrl %>/f/<%= f.slug %>">Copy</button>
-                  <button class="btn btn-danger btn-sm delete-btn" data-id="<%= f.id %>">Del</button>
+                <div class="flex gap-1" style="flex-wrap:wrap">
+                  <a href="/f/<%= f.slug %>" target="_blank" class="btn btn-outline btn-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    View
+                  </a>
+                  <button class="btn btn-outline btn-sm" data-copy="<%= appUrl %>/f/<%= f.slug %>">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    Copy
+                  </button>
+                  <button class="btn btn-danger btn-sm" data-delete-file="<%= f.id %>" data-name="<%= f.original_name %>">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                    Delete
+                  </button>
                 </div>
               </td>
             </tr>
@@ -122,9 +145,10 @@ const planColor = planColors[user.plan] || planColors.free;
   </div>
 
   <% if (user.plan === 'free') { %>
-    <div class="alert alert-info" style="margin-top:1.5rem">
-      ⚡ Upgrade to <strong>Pro</strong> for 10GB storage and larger file uploads.
-      <a href="/plans" style="margin-left:.5rem;font-weight:600">See plans &rarr;</a>
+    <div class="alert alert-info" style="margin-top:1.5rem;display:flex;align-items:center;gap:.6rem">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      Upgrade to <strong>Starter</strong> for 50GB storage, API access, and live video streaming.
+      <a href="/plans" style="margin-left:.25rem;font-weight:600">See plans &rarr;</a>
     </div>
   <% } %>
 

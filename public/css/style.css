@@ -270,3 +270,41 @@ footer {
   font-size: 0.8rem;
   margin-top: 4rem;
 }
+
+/* ── GLOBAL STYLED MODAL ─────────────────────────────────────────────────── */
+.alz-modal-overlay {
+  position: fixed; inset: 0; background: #00000090;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9000; opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.alz-modal-overlay.open { opacity: 1; pointer-events: all; }
+.alz-modal {
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--radius); padding: 1.75rem;
+  width: 90%; max-width: 440px;
+  transform: scale(.95); transition: transform .2s;
+}
+.alz-modal-overlay.open .alz-modal { transform: scale(1); }
+.alz-modal-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; }
+.alz-modal-icon.warn { background: #ff4d6a22; color: var(--red); }
+.alz-modal-icon.info { background: var(--accent-glow); color: var(--accent2); }
+.alz-modal-icon.success { background: #22d3a022; color: var(--green); }
+.alz-modal-icon svg { width: 22px; height: 22px; }
+.alz-modal-title { font-size: 1rem; font-weight: 600; margin-bottom: .4rem; }
+.alz-modal-body { font-size: .875rem; color: var(--muted); margin-bottom: 1.5rem; line-height: 1.6; }
+.alz-modal-actions { display: flex; gap: .75rem; justify-content: flex-end; }
+
+/* ── GLOBAL TOAST ────────────────────────────────────────────────────────── */
+#alz-toast {
+  position: fixed; bottom: 1.5rem; right: 1.5rem;
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--radius-sm); padding: .75rem 1.1rem;
+  font-size: .875rem; color: var(--text); z-index: 9999;
+  transform: translateY(80px); opacity: 0; transition: all .3s;
+  pointer-events: none; max-width: 320px; display: flex; align-items: center; gap: .6rem;
+}
+#alz-toast.show { transform: translateY(0); opacity: 1; }
+#alz-toast svg { flex-shrink: 0; }
+
+/* Nav icon for cloud logo */
+.logo svg { color: var(--accent2); }

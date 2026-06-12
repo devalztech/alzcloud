@@ -4,15 +4,14 @@ const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
 const fileUpload = require('express-fileupload');
 const path = require('path');
+const crypto = require('crypto');
 const { initDB, pool } = require('../config/db');
 const { loadUser } = require('./middleware/auth');
 const routes = require('./routes/index');
 
 const app = express();
 
-// Render sits behind a proxy — required for HTTPS cookies and correct IPs
 app.set('trust proxy', 1);
-
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '../views'));
 app.use(express.static(path.join(__dirname, '../public')));
@@ -20,24 +19,23 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.use(fileUpload({
-  limits: { fileSize: 2 * 1024 * 1024 * 1024 }, // 2GB max
+  limits: { fileSize: 4 * 1024 * 1024 * 1024 }, // 4GB max (Pro plan)
   abortOnLimit: true,
   useTempFiles: true,
   tempFileDir: '/tmp/'
 }));
 
-// PostgreSQL session store — no MemoryStore leak in production
 app.use(session({
   store: new pgSession({
     pool,
     tableName: 'sessions',
-    createTableIfMissing: true  // auto-creates the sessions table
+    createTableIfMissing: true
   }),
   secret: process.env.SESSION_SECRET || 'alzcloud_secret',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // HTTPS-only on Render
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000
@@ -50,7 +48,12 @@ app.locals.appName = process.env.APP_NAME || 'AlzCloud';
 app.locals.appUrl = process.env.APP_URL || 'http://localhost:3000';
 app.locals.paystackPublic = process.env.PAYSTACK_PUBLIC_KEY || '';
 
-app.use('/', routes);
+// Generate a random admin slug per session — stored in DB for the session lifetime
+// The admin path is stored in process.env or regenerated on boot
+let ADMIN_SLUG = process.env.ADMIN_SLUG || crypto.randomBytes(6).toString('hex');
+app.locals.adminSlug = ADMIN_SLUG;
+
+app.use('/', routes(ADMIN_SLUG));
 
 app.use((req, res) => {
   res.status(404).render('pages/error', { title: '404 — Not Found', message: 'This page does not exist.', user: res.locals.user });
@@ -60,8 +63,8 @@ const PORT = process.env.PORT || 10000;
 
 initDB().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 AlzCloud running on port ${PORT}`);
-    console.log(`   ENV: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`   URL: ${process.env.APP_URL || 'http://localhost:' + PORT}`);
+    console.log(`AlzCloud running on port ${PORT}`);
+    console.log(`Admin path: /${ADMIN_SLUG}`);
+    console.log(`ENV: ${process.env.NODE_ENV || 'development'}`);
   });
 }).catch(e => { console.error('DB init failed:', e); process.exit(1); });

@@ -20,6 +20,11 @@ exports.postRegister = async (req, res) => {
     );
     req.session.userId = r.rows[0].id;
     req.session.isAdmin = r.rows[0].is_admin;
+    // Generate new admin slug each login for admins
+    if (r.rows[0].is_admin) {
+      const crypto = require('crypto');
+      req.session.adminSlug = crypto.randomBytes(6).toString('hex');
+    }
     res.redirect('/dashboard');
   } catch (e) {
     const msg = e.code === '23505' ? 'Username or email already taken.' : 'Registration failed. Try again.';
