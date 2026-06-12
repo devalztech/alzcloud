@@ -3,7 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= file.original_name %> — <%= appName %></title>
+
+  <!-- Primary SEO -->
+  <title><%= file.original_name %> — AlzCloud</title>
+  <meta name="description" content="View and download &quot;<%= file.original_name %>&quot; shared via AlzCloud. <%= file.downloads %> downloads so far.">
+  <meta name="robots" content="index, follow">
+
+  <!-- Open Graph (WhatsApp, Facebook, Discord previews) -->
+  <meta property="og:type" content="<%= file.file_type === 'image' ? 'article' : 'website' %>">
+  <meta property="og:url" content="<%= appUrl %>/f/<%= file.slug %>">
+  <meta property="og:site_name" content="AlzCloud">
+  <meta property="og:title" content="<%= file.original_name %>">
+  <meta property="og:description" content="Shared on AlzCloud &middot; <%= file.file_type %> &middot; <%= file.downloads %> downloads">
+  <% if (file.file_type === 'image') { %>
+  <meta property="og:image" content="<%= appUrl %>/preview/<%= file.message_id %>">
+  <meta property="og:image:alt" content="<%= file.original_name %>">
+  <% } else { %>
+  <meta property="og:image" content="<%= appUrl %>/img/og-cover.png">
+  <meta property="og:image:alt" content="File shared on AlzCloud">
+  <% } %>
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="<%= file.file_type === 'image' ? 'summary_large_image' : 'summary' %>">
+  <meta name="twitter:title" content="<%= file.original_name %>">
+  <meta name="twitter:description" content="Shared on AlzCloud &middot; <%= file.file_type %> &middot; <%= file.downloads %> downloads">
+  <% if (file.file_type === 'image') { %>
+  <meta name="twitter:image" content="<%= appUrl %>/preview/<%= file.message_id %>">
+  <% } else { %>
+  <meta name="twitter:image" content="<%= appUrl %>/img/og-cover.png">
+  <% } %>
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236c63ff' stroke-width='2'%3E%3Cpath d='M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/css/style.css">
   <style>
     html, body { height: 100%; }
