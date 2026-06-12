@@ -3,83 +3,85 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %> — <%= appName %></title>
+  <title><%= title %> — Admin</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 <nav>
-  <a href="/" class="logo">☁️ <span><%= appName %></span></a>
+  <a href="/" class="logo">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+    <span><%= appName %></span>
+  </a>
   <div class="nav-links">
-    <a href="/dashboard">Dashboard</a>
-    <a href="/admin">Admin</a>
+    <a href="/<%= locals.adminSlug %>">Dashboard</a>
     <a href="/logout" class="btn btn-outline btn-sm">Sign out</a>
   </div>
 </nav>
-
 <div class="container page">
-  <div class="flex items-center justify-between" style="margin-bottom:1.5rem">
-    <h2>All Users</h2>
-    <a href="/admin" class="btn btn-outline btn-sm">&larr; Back</a>
-  </div>
-
-  <div class="card">
-    <div style="overflow-x:auto">
-      <table class="files-table">
-        <thead>
-          <tr>
-            <th>User</th>
-            <th>Email</th>
-            <th>Plan</th>
-            <th>Storage</th>
-            <th>Joined</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% for (var i = 0; i < users.length; i++) { var u = users[i]; %>
-          <tr>
-            <td>
-              <strong><%= u.username %></strong>
-              <% if (u.is_admin) { %>
-                <span style="font-size:.7rem;background:#f5c84222;color:#f5c842;padding:.1rem .4rem;border-radius:4px;margin-left:.4rem">admin</span>
-              <% } %>
-            </td>
-            <td class="text-muted"><%= u.email %></td>
-            <td>
-              <select class="form-input" style="padding:.25rem .5rem;font-size:.8rem;width:auto" onchange="changePlan(<%= u.id %>, this.value)">
-                <option <%= u.plan==='free' ? 'selected' : '' %>>free</option>
-                <option <%= u.plan==='pro' ? 'selected' : '' %>>pro</option>
-                <option <%= u.plan==='business' ? 'selected' : '' %>>business</option>
-              </select>
-            </td>
-            <td class="text-muted"><%= u.storageFormatted %></td>
-            <td class="text-muted"><%= u.joinedDate %></td>
-            <td>
-              <button class="btn btn-danger btn-sm" onclick="deleteUser(<%= u.id %>)">Delete</button>
-            </td>
-          </tr>
-          <% } %>
-        </tbody>
-      </table>
-    </div>
+  <a href="/<%= locals.adminSlug %>" class="btn btn-outline btn-sm" style="margin-bottom:1.5rem;display:inline-flex">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to Admin
+  </a>
+  <h2 style="margin-bottom:1.5rem">All Users</h2>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table class="files-table">
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Plan</th>
+          <th>Storage</th>
+          <th>Joined</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% users.forEach(function(u) { %>
+        <tr>
+          <td style="font-weight:500">
+            <%= u.username %>
+            <% if (u.is_admin) { %><span class="file-type-badge" style="background:var(--accent-glow);color:var(--accent2)">Admin</span><% } %>
+          </td>
+          <td class="text-muted" style="font-size:.82rem"><%= u.email %></td>
+          <td style="text-transform:capitalize"><%= u.plan %></td>
+          <td class="text-muted"><%= u.storageFormatted %></td>
+          <td class="text-muted" style="font-size:.82rem"><%= u.joinedDate %></td>
+          <td>
+            <% if (!u.isProtected) { %>
+            <button class="btn btn-danger btn-sm" onclick="deleteUser(<%= u.id %>, '<%= u.username %>')">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+              Delete
+            </button>
+            <% } else { %>
+            <span style="font-size:.78rem;color:var(--muted)">Protected</span>
+            <% } %>
+          </td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
   </div>
 </div>
-
 <footer>
   <p>&copy; <%= new Date().getFullYear() %> <%= appName %> &middot; Powered by Alz-Tech</p>
 </footer>
+<script src="/js/app.js"></script>
 <script>
-async function changePlan(id, plan) {
-  await fetch('/admin/users/' + id + '/plan', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ plan })
+const ADMIN_SLUG = '<%= locals.adminSlug %>';
+function deleteUser(id, username) {
+  alzModal({
+    title: 'Delete User',
+    body: `Delete user "<strong>${username}</strong>"? All their files will be permanently removed.`,
+    type: 'warn',
+    confirmText: 'Delete',
+    cancelText: 'Cancel',
+    onConfirm: async () => {
+      const r = await fetch('/' + ADMIN_SLUG + '/users/' + id, { method: 'DELETE' });
+      const d = await r.json();
+      if (d.success) { alzToast('User deleted.', 'success'); location.reload(); }
+      else alzToast(d.error || 'Delete failed.', 'error');
+    }
   });
-}
-async function deleteUser(id) {
-  if (!confirm('Delete this user and all their files?')) return;
-  const r = await fetch('/admin/users/' + id, { method: 'DELETE' });
-  if ((await r.json()).success) location.reload();
 }
 </script>
 </body>

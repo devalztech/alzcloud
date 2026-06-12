@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Docs — <%= appName %></title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .api-layout { display: grid; grid-template-columns: 220px 1fr; gap: 0; min-height: 80vh; }
+    .api-nav { border-right: 1px solid var(--border); padding: 2rem 0; position: sticky; top: 64px; height: calc(100vh - 64px); overflow-y: auto; }
+    .api-nav a { display: block; padding: .45rem 1.5rem; font-size: .83rem; color: var(--muted); transition: color .15s; }
+    .api-nav a:hover { color: var(--accent2); }
+    .api-nav .nav-section { font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; padding: .75rem 1.5rem .2rem; color: var(--muted); opacity: .6; }
+    .api-body { padding: 2.5rem 3rem; max-width: 780px; }
+    .api-body h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: .5rem; }
+    .api-body h2 { font-size: 1.15rem; font-weight: 600; margin: 2.5rem 0 1rem; padding-top: 2.5rem; border-top: 1px solid var(--border); }
+    .api-body h2:first-of-type { border-top: none; }
+    .api-body p { font-size: .9rem; color: var(--muted); line-height: 1.75; margin-bottom: 1rem; }
+    .endpoint { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1.25rem; overflow: hidden; }
+    .endpoint-header { display: flex; align-items: center; gap: .75rem; padding: .85rem 1.25rem; border-bottom: 1px solid var(--border); }
+    .method { font-size: .72rem; font-weight: 700; padding: .2rem .55rem; border-radius: 4px; font-family: 'JetBrains Mono', monospace; letter-spacing: .03em; }
+    .method-get { background: #22d3a022; color: var(--green); }
+    .method-post { background: #6c63ff22; color: var(--accent2); }
+    .method-delete { background: #ff4d6a22; color: var(--red); }
+    .endpoint-path { font-family: 'JetBrains Mono', monospace; font-size: .875rem; color: var(--text); }
+    .endpoint-desc { font-size: .82rem; color: var(--muted); margin-left: auto; }
+    .endpoint-body { padding: 1rem 1.25rem; }
+    pre { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem 1.25rem; font-family: 'JetBrains Mono', monospace; font-size: .8rem; color: var(--text); overflow-x: auto; margin: .75rem 0; line-height: 1.6; }
+    .key-box { display: flex; align-items: center; gap: .75rem; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .65rem 1rem; margin: 1rem 0; }
+    .key-box code { flex: 1; font-family: 'JetBrains Mono', monospace; font-size: .85rem; color: var(--accent2); word-break: break-all; }
+    .copy-btn { background: transparent; border: 1px solid var(--border2); color: var(--muted); padding: .3rem .65rem; border-radius: 4px; font-size: .75rem; cursor: pointer; transition: all .15s; white-space: nowrap; }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent2); }
+    .param-table { width: 100%; border-collapse: collapse; font-size: .82rem; margin: .75rem 0; }
+    .param-table th { text-align: left; padding: .5rem .75rem; font-size: .72rem; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: .04em; }
+    .param-table td { padding: .55rem .75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .param-table tr:last-child td { border-bottom: none; }
+    .param-name { font-family: 'JetBrains Mono', monospace; color: var(--accent2); }
+    .param-req { color: var(--red); font-size: .7rem; font-weight: 600; }
+    .alert-info-box { background: #6c63ff11; border: 1px solid var(--accent-glow); border-radius: var(--radius-sm); padding: .85rem 1rem; font-size: .85rem; color: var(--accent2); margin: 1rem 0; display: flex; gap: .65rem; align-items: flex-start; }
+    @media(max-width:700px){ .api-layout{grid-template-columns:1fr} .api-nav{display:none} .api-body{padding:1.5rem} }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+    <span><%= appName %></span>
+  </a>
+  <div class="nav-links">
+    <a href="/plans">Pricing</a>
+    <% if (locals.user) { %>
+      <a href="/dashboard">Dashboard</a>
+      <a href="/logout" class="btn btn-outline btn-sm">Sign out</a>
+    <% } else { %>
+      <a href="/login">Sign in</a>
+      <a href="/register" class="btn btn-primary btn-sm">Get started</a>
+    <% } %>
+  </div>
+</nav>
+
+<div class="container" style="padding-top:0;padding-bottom:3rem">
+  <div class="api-layout">
+    <div class="api-nav">
+      <div class="nav-section">Getting Started</div>
+      <a href="#auth">Authentication</a>
+      <a href="#errors">Error codes</a>
+      <div class="nav-section">Endpoints</div>
+      <a href="#me">GET /me</a>
+      <a href="#storage">GET /storage</a>
+      <a href="#list">GET /files</a>
+      <a href="#get-file">GET /files/:slug</a>
+      <a href="#upload">POST /upload</a>
+      <a href="#delete">DELETE /files/:slug</a>
+    </div>
+    <div class="api-body">
+      <h1>AlzCloud API</h1>
+      <p>Programmatic access to your AlzCloud files. Available on <strong>Starter</strong> and <strong>Pro</strong> plans.</p>
+
+      <div class="alert-info-box">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>Base URL: <code style="font-family:'JetBrains Mono',monospace"><%= appUrl %>/api/v1</code></span>
+      </div>
+
+      <h2 id="auth">Authentication</h2>
+      <p>All API requests require your API key. Find it in your Dashboard under API Key. Pass it as a header:</p>
+      <pre>X-API-Key: your_api_key_here</pre>
+      <p>Or as a query parameter (less secure):</p>
+      <pre>GET /api/v1/files?api_key=your_api_key_here</pre>
+
+      <h2 id="errors">Error Codes</h2>
+      <table class="param-table">
+        <thead><tr><th>Code</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td class="param-name">401</td><td>Missing or invalid API key</td></tr>
+          <tr><td class="param-name">403</td><td>API access not available on your plan</td></tr>
+          <tr><td class="param-name">404</td><td>File not found</td></tr>
+          <tr><td class="param-name">400</td><td>Bad request (missing fields, file too large)</td></tr>
+          <tr><td class="param-name">500</td><td>Server error — try again later</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="me">Account Info</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/api/v1/me</span>
+          <span class="endpoint-desc">Get your account details</span>
+        </div>
+        <div class="endpoint-body">
+          <pre>curl <%= appUrl %>/api/v1/me \
+  -H "X-API-Key: your_key"</pre>
+          <pre>// Response
+{
+  "id": 1,
+  "username": "yourname",
+  "email": "you@example.com",
+  "plan": "starter",
+  "storage_used": 10485760,
+  "storage_used_human": "10 MB",
+  "storage_limit": 53687091200,
+  "storage_limit_human": "50 GB"
+}</pre>
+        </div>
+      </div>
+
+      <h2 id="storage">Storage Usage</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/api/v1/storage</span>
+          <span class="endpoint-desc">Storage breakdown</span>
+        </div>
+        <div class="endpoint-body">
+          <pre>// Response
+{
+  "used": 10485760,
+  "used_human": "10 MB",
+  "limit": 53687091200,
+  "limit_human": "50 GB",
+  "remaining_human": "49.99 GB",
+  "percent": 0
+}</pre>
+        </div>
+      </div>
+
+      <h2 id="list">List Files</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/api/v1/files</span>
+          <span class="endpoint-desc">List your uploaded files</span>
+        </div>
+        <div class="endpoint-body">
+          <table class="param-table">
+            <thead><tr><th>Param</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="param-name">limit</td><td>number</td><td>20</td><td>Max files to return (max 100)</td></tr>
+              <tr><td class="param-name">offset</td><td>number</td><td>0</td><td>Pagination offset</td></tr>
+            </tbody>
+          </table>
+          <pre>// Response
+{
+  "files": [
+    {
+      "id": 1,
+      "original_name": "video.mp4",
+      "slug": "abc123def456",
+      "mime_type": "video/mp4",
+      "size": 52428800,
+      "size_human": "50 MB",
+      "file_type": "video",
+      "downloads": 12,
+      "url": "<%= appUrl %>/f/abc123def456",
+      "download_url": "<%= appUrl %>/dl/abc123def456",
+      "embed_url": "<%= appUrl %>/embed/abc123def456"
+    }
+  ],
+  "total": 42,
+  "limit": 20,
+  "offset": 0
+}</pre>
+        </div>
+      </div>
+
+      <h2 id="get-file">Get File Info</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/api/v1/files/:slug</span>
+          <span class="endpoint-desc">Get a single file's details</span>
+        </div>
+        <div class="endpoint-body">
+          <pre>curl <%= appUrl %>/api/v1/files/abc123def456 \
+  -H "X-API-Key: your_key"</pre>
+        </div>
+      </div>
+
+      <h2 id="upload">Upload File</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-post">POST</span>
+          <span class="endpoint-path">/api/v1/upload</span>
+          <span class="endpoint-desc">Upload a file</span>
+        </div>
+        <div class="endpoint-body">
+          <p style="font-size:.82rem;color:var(--muted)">Send as <code>multipart/form-data</code>. Field name must be <code>file</code>.</p>
+          <pre>curl -X POST <%= appUrl %>/api/v1/upload \
+  -H "X-API-Key: your_key" \
+  -F "file=@/path/to/video.mp4"</pre>
+          <pre>// Response (201 Created)
+{
+  "success": true,
+  "slug": "abc123def456",
+  "name": "video.mp4",
+  "size": 52428800,
+  "size_human": "50 MB",
+  "mime_type": "video/mp4",
+  "file_type": "video",
+  "url": "<%= appUrl %>/f/abc123def456",
+  "download_url": "<%= appUrl %>/dl/123456",
+  "embed_url": "<%= appUrl %>/embed/abc123def456"
+}</pre>
+          <p style="font-size:.82rem;color:var(--muted)">JavaScript example:</p>
+          <pre>const form = new FormData();
+form.append('file', fileBlob, 'myfile.mp4');
+
+const res = await fetch('<%= appUrl %>/api/v1/upload', {
+  method: 'POST',
+  headers: { 'X-API-Key': 'your_key' },
+  body: form,
+});
+const data = await res.json();
+console.log(data.url);</pre>
+        </div>
+      </div>
+
+      <h2 id="delete">Delete File</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-delete">DELETE</span>
+          <span class="endpoint-path">/api/v1/files/:slug</span>
+          <span class="endpoint-desc">Permanently delete a file</span>
+        </div>
+        <div class="endpoint-body">
+          <pre>curl -X DELETE <%= appUrl %>/api/v1/files/abc123def456 \
+  -H "X-API-Key: your_key"</pre>
+          <pre>// Response
+{ "success": true, "message": "File deleted." }</pre>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>&copy; <%= new Date().getFullYear() %> <%= appName %> &middot; Powered by Alz-Tech</p>
+</footer>
+</body>
+</html>

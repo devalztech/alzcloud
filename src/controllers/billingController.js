@@ -2,11 +2,6 @@ const axios = require('axios');
 const { pool } = require('../../config/db');
 require('dotenv').config();
 
-const PLAN_PRICES = {
-  pro:      { amount: 150000, name: 'AlzCloud Pro' },
-  business: { amount: 500000, name: 'AlzCloud Business' }
-};
-
 exports.getPlans = async (req, res) => {
   try {
     const { rows: plans } = await pool.query('SELECT * FROM plans WHERE is_active=true ORDER BY price_ngn ASC');
@@ -17,18 +12,20 @@ exports.getPlans = async (req, res) => {
     });
   } catch (e) {
     console.error('Plans error:', e);
-    res.status(500).render('pages/error', { title: 'Error', message: 'Could not load plans.', user: res.locals.user });
+    res.status(500).render('pages/error', { title: 'Error', message: 'Could not load plans. Please try again later.', user: res.locals.user });
   }
 };
 
 exports.initiate = async (req, res) => {
   const { plan } = req.params;
-  if (!PLAN_PRICES[plan]) return res.redirect('/plans');
-
   try {
+    const { rows } = await pool.query('SELECT * FROM plans WHERE name=$1 AND is_active=true', [plan]);
+    if (!rows[0] || rows[0].price_ngn === 0) return res.redirect('/plans');
+    const planData = rows[0];
+
     const { data } = await axios.post('https://api.paystack.co/transaction/initialize', {
       email: req.user.email,
-      amount: PLAN_PRICES[plan].amount,
+      amount: planData.price_ngn * 100, // kobo
       metadata: { user_id: req.user.id, plan },
       callback_url: `${process.env.APP_URL}/billing/verify`
     }, { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } });
@@ -46,18 +43,15 @@ exports.verify = async (req, res) => {
     const { data } = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
       headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
     });
-
     if (data.data.status === 'success') {
       const { user_id, plan } = data.data.metadata;
       const expires = new Date();
       expires.setDate(expires.getDate() + 30);
-
       await pool.query('UPDATE users SET plan=$1 WHERE id=$2', [plan, user_id]);
       await pool.query(
         'INSERT INTO subscriptions (user_id, plan, paystack_ref, amount, expires_at) VALUES ($1,$2,$3,$4,$5)',
         [user_id, plan, reference, data.data.amount, expires]
       );
-
       res.redirect('/dashboard?upgraded=1');
     } else {
       res.redirect('/plans?error=payment_failed');

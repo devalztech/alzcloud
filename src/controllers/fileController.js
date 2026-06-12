@@ -4,20 +4,25 @@ const { uploadFile, getFileUrl, deleteMessage } = require('../utils/telegram');
 const { v4: uuidv4 } = require('uuid');
 const bytes = require('bytes');
 
-const PLAN_LIMITS = {
-  free:     { storage: 2621440000,   fileSize: 524288000,  maxFiles: 5  },
-  pro:      { storage: 10737418240,  fileSize: 524288000,  maxFiles: 500 },
-  business: { storage: 107374182400, fileSize: 2147483648, maxFiles: -1  }
-};
+async function getPlanLimits(planName) {
+  const { rows } = await pool.query('SELECT * FROM plans WHERE name=$1', [planName]);
+  if (!rows[0]) return { storage: 524288000, fileSize: 524288000, maxFiles: -1, apiAccess: false, liveStreaming: false };
+  return {
+    storage: Number(rows[0].storage_limit),
+    fileSize: Number(rows[0].file_size_limit),
+    maxFiles: rows[0].max_files,
+    apiAccess: rows[0].api_access,
+    liveStreaming: rows[0].live_streaming,
+  };
+}
 
 exports.getDashboard = async (req, res) => {
   try {
     const { rows: files } = await pool.query(
       'SELECT * FROM files WHERE user_id=$1 ORDER BY created_at DESC LIMIT 100', [req.user.id]
     );
-    const limits = PLAN_LIMITS[req.user.plan] || PLAN_LIMITS.free;
+    const limits = await getPlanLimits(req.user.plan);
     const storagePercent = Math.min(100, Math.round((Number(req.user.storage_used) / limits.storage) * 100));
-
     files.forEach(f => { f.sizeFormatted = bytes(Number(f.size)); });
 
     res.render('pages/dashboard', {
@@ -43,7 +48,7 @@ exports.uploadFile = async (req, res) => {
       return res.status(400).json({ error: 'No file provided.' });
 
     const file = req.files.file;
-    const limits = PLAN_LIMITS[req.user.plan] || PLAN_LIMITS.free;
+    const limits = await getPlanLimits(req.user.plan);
 
     if (file.size > limits.fileSize)
       return res.status(400).json({ error: `File too large. Max allowed is ${bytes(limits.fileSize)}.` });
@@ -65,7 +70,6 @@ exports.uploadFile = async (req, res) => {
 
     tempPath = file.tempFilePath;
     const buffer = fs.readFileSync(tempPath);
-
     const stored = await uploadFile(buffer, file.name, file.mimetype);
     const slug = uuidv4().replace(/-/g, '').substring(0, 12);
 
@@ -74,7 +78,6 @@ exports.uploadFile = async (req, res) => {
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [req.user.id, stored.file_id, stored.file_unique_id, file.name, slug, file.mimetype, file.size, fileType, stored.message_id]
     );
-
     await pool.query('UPDATE users SET storage_used = storage_used + $1 WHERE id=$2', [file.size, req.user.id]);
 
     res.json({ success: true, slug, url: `${process.env.APP_URL}/f/${slug}` });
@@ -82,32 +85,35 @@ exports.uploadFile = async (req, res) => {
     console.error('Upload error:', e);
     res.status(500).json({ error: 'Upload failed: ' + e.message });
   } finally {
-    if (tempPath) {
-      try { fs.unlinkSync(tempPath); } catch (_) {}
-    }
+    if (tempPath) { try { fs.unlinkSync(tempPath); } catch (_) {} }
   }
 };
 
 exports.viewFile = async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT f.*, u.username FROM files f JOIN users u ON f.user_id=u.id WHERE f.slug=$1',
+      'SELECT f.*, u.username, u.plan FROM files f JOIN users u ON f.user_id=u.id WHERE f.slug=$1',
       [req.params.slug]
     );
     if (!rows[0]) return res.status(404).render('pages/error', { title: '404', message: 'File not found.', user: res.locals.user });
 
     const file = rows[0];
-
-    // /dl/ increments download count; /preview/ streams without counting (used for image/video/audio preview)
+    const limits = await getPlanLimits(file.plan);
     const url = `/dl/${file.message_id}`;
     const previewUrl = `/preview/${file.message_id}`;
+    const canStream = limits.liveStreaming && file.file_type === 'video';
+    // Use HLS for files > 100MB, progressive for smaller
+    const streamMode = file.size > 100 * 1024 * 1024 ? 'hls' : 'progressive';
 
     res.render('pages/file', {
       title: file.original_name,
       file,
       url,
       previewUrl,
-      fileSize: bytes(Number(file.size))
+      canStream,
+      streamMode,
+      fileSize: bytes(Number(file.size)),
+      appUrl: process.env.APP_URL || ''
     });
   } catch (e) {
     console.error('View file error:', e);

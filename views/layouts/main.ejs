@@ -5,22 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> — <%= appName %></title>
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☁️</text></svg>">
-  <style>
-    html, body { height: 100%; }
-    body { display: flex; flex-direction: column; min-height: 100vh; }
-    body > main { flex: 1; }
-  </style>
+  <style>html,body{height:100%}body{display:flex;flex-direction:column;min-height:100vh}body>main{flex:1}</style>
 </head>
 <body>
-
 <nav>
-  <a href="/" class="logo">☁️ <span><%= appName %></span></a>
+  <a href="/" class="logo">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+    <span><%= appName %></span>
+  </a>
   <div class="nav-links">
     <a href="/plans">Pricing</a>
-    <% if (user) { %>
+    <% if (locals.user) { %>
       <a href="/dashboard">Dashboard</a>
-      <% if (user.is_admin) { %><a href="/admin">Admin</a><% } %>
+      <% if (locals.user.is_admin) { %><a href="/<%= locals.adminSlug %>">Admin</a><% } %>
       <a href="/logout" class="btn btn-outline btn-sm">Sign out</a>
     <% } else { %>
       <a href="/login">Sign in</a>
@@ -28,15 +25,10 @@
     <% } %>
   </div>
 </nav>
-
-<main>
-<%- body %>
-</main>
-
+<main><%- body %></main>
 <footer>
-  <p>© <%= new Date().getFullYear() %> <%= appName %> &middot; Powered by Alz-Tech</p>
+  <p>&copy; <%= new Date().getFullYear() %> <%= appName %> &middot; Powered by Alz-Tech</p>
 </footer>
-
 <script src="/js/app.js"></script>
 </body>
 </html>
