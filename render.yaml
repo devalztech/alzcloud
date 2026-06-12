@@ -1,0 +1,41 @@
+# render.yaml — Render Blueprint
+# Defines your web service + database as infrastructure-as-code.
+# Optional: you can also configure everything manually in the Render dashboard.
+
+services:
+  - type: web
+    name: alzcloud
+    runtime: node
+    buildCommand: npm install
+    startCommand: node src/app.js
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: APP_NAME
+        value: AlzCloud
+      - key: APP_URL
+        # Set this manually in the dashboard after deploy — it'll be your .onrender.com URL
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true   # Render auto-generates a secure random value
+      - key: DATABASE_URL
+        fromDatabase:
+          name: alzcloud-db
+          property: connectionString
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false           # Set manually in dashboard
+      - key: TELEGRAM_CHANNEL_ID
+        sync: false           # Set manually in dashboard
+      - key: PAYSTACK_SECRET_KEY
+        sync: false           # Set manually in dashboard
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false           # Set manually in dashboard
+
+databases:
+  - name: alzcloud-db
+    databaseName: alzcloud
+    user: alzcloud_user
+    plan: free

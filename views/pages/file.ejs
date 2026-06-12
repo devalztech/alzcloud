@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= file.original_name %> — <%= appName %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">☁️ <span><%= appName %></span></a>
+  <div class="nav-links">
+    <% if (user) { %>
+      <a href="/dashboard">Dashboard</a>
+      <a href="/logout" class="btn btn-outline btn-sm">Sign out</a>
+    <% } else { %>
+      <a href="/login">Sign in</a>
+      <a href="/register" class="btn btn-primary btn-sm">Get started</a>
+    <% } %>
+  </div>
+</nav>
+
+<div class="container page" style="max-width:640px;">
+  <div class="card">
+    <div style="margin-bottom:1.25rem">
+      <span class="file-type-badge badge-<%= file.file_type %>" style="margin-bottom:.75rem;display:inline-block"><%= file.file_type %></span>
+      <h2 style="word-break:break-all;line-height:1.3"><%= file.original_name %></h2>
+      <p class="text-muted text-sm mt-1">Uploaded by <strong><%= file.username %></strong> &middot; <%= fileSize %> &middot; <%= file.downloads %> downloads</p>
+    </div>
+
+    <% if (file.file_type === 'image') { %>
+      <div style="margin-bottom:1.25rem;border-radius:8px;overflow:hidden;border:1px solid var(--border)">
+        <img src="<%= url %>" alt="<%= file.original_name %>" style="width:100%;display:block;max-height:500px;object-fit:contain;background:var(--bg3)">
+      </div>
+    <% } else if (file.file_type === 'video') { %>
+      <div style="margin-bottom:1.25rem;border-radius:8px;overflow:hidden;border:1px solid var(--border)">
+        <video controls style="width:100%;display:block;background:#000" preload="metadata">
+          <source src="<%= url %>" type="<%= file.mime_type %>">
+        </video>
+      </div>
+    <% } else if (file.file_type === 'audio') { %>
+      <div style="margin-bottom:1.25rem;padding:1rem;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:2rem;text-align:center;margin-bottom:1rem">🎵</div>
+        <audio controls style="width:100%">
+          <source src="<%= url %>" type="<%= file.mime_type %>">
+        </audio>
+      </div>
+    <% } else { %>
+      <div style="padding:2rem;text-align:center;background:var(--bg3);border-radius:8px;border:1px solid var(--border);margin-bottom:1.25rem">
+        <div style="font-size:3rem;margin-bottom:.5rem">📄</div>
+        <p class="text-muted">Preview not available for this file type.</p>
+      </div>
+    <% } %>
+
+    <div class="copy-link-wrap" style="margin-bottom:1rem">
+      <input class="form-input" type="text" value="<%= appUrl %>/f/<%= file.slug %>" id="share-url" readonly>
+      <button class="btn btn-outline" onclick="copyUrl(this)">Copy link</button>
+    </div>
+
+    <a href="<%= url %>" download="<%= file.original_name %>" class="btn btn-primary btn-block">&#11015; Download file</a>
+  </div>
+</div>
+
+<footer>
+  <p>&copy; <%= new Date().getFullYear() %> <%= appName %> &middot; Powered by Alz-Tech</p>
+</footer>
+<script>
+function copyUrl(btn) {
+  navigator.clipboard.writeText(document.getElementById('share-url').value);
+  btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = 'Copy link', 2000);
+}
+</script>
+</body>
+</html>

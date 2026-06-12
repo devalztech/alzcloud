@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> — <%= appName %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">☁️ <span><%= appName %></span></a>
+  <div class="nav-links">
+    <a href="/plans">Pricing</a>
+    <% if (user) { %>
+      <a href="/dashboard">Dashboard</a>
+      <a href="/logout" class="btn btn-outline btn-sm">Sign out</a>
+    <% } else { %>
+      <a href="/login">Sign in</a>
+      <a href="/register" class="btn btn-primary btn-sm">Get started</a>
+    <% } %>
+  </div>
+</nav>
+
+<div class="container page">
+  <% if (locals.queryError) { %>
+    <div class="alert alert-error">Payment failed or was cancelled. Please try again.</div>
+  <% } %>
+
+  <div style="text-align:center;margin-bottom:2rem">
+    <h2 style="font-size:2rem;margin-bottom:.5rem">Simple, honest pricing</h2>
+    <p class="text-muted">Pay only for what you need. Cancel anytime.</p>
+  </div>
+
+  <div class="pricing-grid">
+    <% for (var i = 0; i < plans.length; i++) {
+      var plan = plans[i];
+      var featured = plan.name === 'pro';
+      var features = JSON.parse(plan.features || '[]');
+      var isCurrentPlan = user && user.plan === plan.name;
+    %>
+    <div class="plan-card <%= featured ? 'featured' : '' %>">
+      <% if (featured) { %><div class="plan-badge">Most Popular</div><% } %>
+      <div style="font-weight:600;font-size:1rem;text-transform:capitalize"><%= plan.display_name %></div>
+      <div class="plan-price">
+        <% if (plan.price_ngn === 0) { %>Free<% } else { %>&#8358;<%= plan.price_ngn.toLocaleString() %><span>/month</span><% } %>
+      </div>
+      <ul class="plan-features">
+        <% for (var j = 0; j < features.length; j++) { %>
+          <li><%= features[j] %></li>
+        <% } %>
+      </ul>
+      <% if (isCurrentPlan) { %>
+        <div class="btn btn-outline btn-block" style="text-align:center;justify-content:center;cursor:default">Current plan</div>
+      <% } else if (plan.price_ngn === 0) { %>
+        <a href="/register" class="btn btn-outline btn-block">Get started free</a>
+      <% } else if (user) { %>
+        <a href="/billing/upgrade/<%= plan.name %>" class="btn btn-primary btn-block">Upgrade to <%= plan.display_name %></a>
+      <% } else { %>
+        <a href="/register" class="btn btn-primary btn-block">Get started</a>
+      <% } %>
+    </div>
+    <% } %>
+  </div>
+
+  <div class="card" style="margin-top:2.5rem;text-align:center">
+    <p class="text-muted text-sm">All plans include a shareable public link for every file. Payments processed securely via Paystack. Cancel anytime.</p>
+  </div>
+</div>
+
+<footer>
+  <p>&copy; <%= new Date().getFullYear() %> <%= appName %> &middot; Powered by Alz-Tech</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> — <%= appName %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">☁️ <span><%= appName %></span></a>
+  <div class="nav-links">
+    <a href="/dashboard">Dashboard</a>
+    <a href="/admin">Admin</a>
+    <a href="/logout" class="btn btn-outline btn-sm">Sign out</a>
+  </div>
+</nav>
+
+<div class="container page">
+  <div class="flex items-center justify-between" style="margin-bottom:1.5rem">
+    <h2>Admin Panel</h2>
+    <a href="/admin/users" class="btn btn-outline btn-sm">Manage Users</a>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-val"><%= stats.users %></div>
+      <div class="stat-label">Total users</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val"><%= stats.files %></div>
+      <div class="stat-label">Total files</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val"><%= stats.storage %></div>
+      <div class="stat-label">Total storage used</div>
+    </div>
+  </div>
+
+  <div class="card mt-2">
+    <h3 style="margin-bottom:1rem">Users by plan</h3>
+    <table class="files-table">
+      <thead><tr><th>Plan</th><th>Users</th></tr></thead>
+      <tbody>
+        <% for (var i = 0; i < plans.length; i++) { %>
+        <tr>
+          <td style="text-transform:capitalize;font-weight:500"><%= plans[i].plan %></td>
+          <td><%= plans[i].count %></td>
+        </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<footer>
+  <p>&copy; <%= new Date().getFullYear() %> <%= appName %> &middot; Powered by Alz-Tech</p>
+</footer>
+</body>
+</html>

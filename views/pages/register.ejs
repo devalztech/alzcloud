@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> — <%= appName %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">☁️ <span><%= appName %></span></a>
+  <div class="nav-links">
+    <a href="/plans">Pricing</a>
+    <a href="/login">Sign in</a>
+  </div>
+</nav>
+<div class="container page" style="max-width:420px;">
+  <div class="card">
+    <h2 style="margin-bottom:.25rem">Create account</h2>
+    <p class="text-muted text-sm" style="margin-bottom:1.5rem">Start with 500MB free storage</p>
+    <% if (error) { %>
+      <div class="alert alert-error"><%= error %></div>
+    <% } %>
+    <form method="POST" action="/register">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input class="form-input" type="text" name="username" required autofocus placeholder="johndoe" pattern="[a-zA-Z0-9_]{3,30}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" name="email" required placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" name="password" required placeholder="Min. 6 characters" minlength="6">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top:.5rem">Create account</button>
+    </form>
+    <p class="text-sm text-muted" style="margin-top:1.25rem;text-align:center">
+      Have an account? <a href="/login">Sign in</a>
+    </p>
+  </div>
+</div>
+<footer>
+  <p>&copy; <%= new Date().getFullYear() %> <%= appName %> &middot; Powered by Alz-Tech</p>
+</footer>
+</body>
+</html>

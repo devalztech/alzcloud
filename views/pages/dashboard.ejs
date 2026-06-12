@@ -1,0 +1,138 @@
+<%
+const planColors = { free: '#8888a8', pro: '#6c63ff', business: '#22d3a0' };
+const planColor = planColors[user.plan] || planColors.free;
+%>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> — <%= appName %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">☁️ <span><%= appName %></span></a>
+  <div class="nav-links">
+    <a href="/plans">Pricing</a>
+    <a href="/dashboard">Dashboard</a>
+    <% if (user.is_admin) { %><a href="/admin">Admin</a><% } %>
+    <a href="/logout" class="btn btn-outline btn-sm">Sign out</a>
+  </div>
+</nav>
+
+<div class="container page">
+
+  <% if (locals.upgraded) { %>
+    <div class="alert alert-success">🎉 Plan upgraded successfully! Enjoy your new limits.</div>
+  <% } %>
+
+  <div class="flex items-center justify-between" style="margin-bottom:1.5rem">
+    <div>
+      <h2>Dashboard</h2>
+      <p class="text-muted text-sm">Welcome back, <strong><%= user.username %></strong></p>
+    </div>
+    <span style="background:<%= planColor %>22;color:<%= planColor %>;border:1px solid <%= planColor %>44;padding:.25rem .75rem;border-radius:99px;font-size:.8rem;font-weight:600;text-transform:uppercase">
+      <%= user.plan %>
+    </span>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-val"><%= files.length %></div>
+      <div class="stat-label">Files uploaded</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val"><%= storageUsed %></div>
+      <div class="stat-label">Storage used of <%= storageMax %></div>
+      <div class="progress-bar mt-1">
+        <div class="progress-fill" style="width:<%= storagePercent %>%"></div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val"><%
+        var totalDl = 0;
+        for (var i = 0; i < files.length; i++) totalDl += files[i].downloads;
+      %><%= totalDl %></div>
+      <div class="stat-label">Total downloads</div>
+    </div>
+  </div>
+
+  <!-- Upload Zone -->
+  <div class="card" style="margin-bottom:1.5rem">
+    <div id="upload-zone">
+      <div class="upload-icon">📂</div>
+      <p><strong>Click to upload</strong> or drag and drop</p>
+      <p class="text-sm" style="margin-top:.35rem">Any file type &middot; Max <%= fileSizeLimit %> per file</p>
+      <input type="file" id="file-input" style="display:none" multiple>
+    </div>
+    <div id="upload-progress" style="display:none;margin-top:1rem">
+      <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+      <p class="text-sm text-muted mt-1" id="upload-status">Uploading...</p>
+    </div>
+  </div>
+
+  <!-- Files Table -->
+  <div class="card">
+    <div class="flex items-center justify-between" style="margin-bottom:1rem">
+      <h3>Your files</h3>
+      <span class="text-sm text-muted"><%= files.length %> file<%= files.length !== 1 ? 's' : '' %></span>
+    </div>
+
+    <% if (files.length === 0) { %>
+      <div style="text-align:center;padding:3rem 1rem;color:var(--muted)">
+        <div style="font-size:2rem;margin-bottom:.5rem">📭</div>
+        <p>No files yet. Upload your first file above.</p>
+      </div>
+    <% } else { %>
+      <div style="overflow-x:auto">
+        <table class="files-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Size</th>
+              <th>Downloads</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% for (var i = 0; i < files.length; i++) { var f = files[i]; %>
+            <tr>
+              <td>
+                <div class="file-name" title="<%= f.original_name %>"><%= f.original_name %></div>
+                <div class="text-sm text-muted" style="font-family:'JetBrains Mono',monospace;font-size:.75rem"><%= f.slug %></div>
+              </td>
+              <td><span class="file-type-badge badge-<%= f.file_type %>"><%= f.file_type %></span></td>
+              <td class="text-muted"><%= f.sizeFormatted %></td>
+              <td class="text-muted"><%= f.downloads %></td>
+              <td>
+                <div class="flex gap-1">
+                  <a href="/f/<%= f.slug %>" target="_blank" class="btn btn-outline btn-sm">View</a>
+                  <button class="btn btn-outline btn-sm copy-btn" data-url="<%= appUrl %>/f/<%= f.slug %>">Copy</button>
+                  <button class="btn btn-danger btn-sm delete-btn" data-id="<%= f.id %>">Del</button>
+                </div>
+              </td>
+            </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+
+  <% if (user.plan === 'free') { %>
+    <div class="alert alert-info" style="margin-top:1.5rem">
+      ⚡ Upgrade to <strong>Pro</strong> for 10GB storage and larger file uploads.
+      <a href="/plans" style="margin-left:.5rem;font-weight:600">See plans &rarr;</a>
+    </div>
+  <% } %>
+
+</div>
+
+<footer>
+  <p>&copy; <%= new Date().getFullYear() %> <%= appName %> &middot; Powered by Alz-Tech</p>
+</footer>
+<script src="/js/app.js"></script>
+</body>
+</html>

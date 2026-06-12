@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> — <%= appName %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">☁️ <span><%= appName %></span></a>
+  <div class="nav-links">
+    <% if (user) { %>
+      <a href="/dashboard">Dashboard</a>
+    <% } else { %>
+      <a href="/login">Sign in</a>
+    <% } %>
+  </div>
+</nav>
+<div class="container page" style="max-width:480px;text-align:center">
+  <div style="font-size:4rem;margin-bottom:1rem">⚠️</div>
+  <h2 style="margin-bottom:.5rem"><%= title %></h2>
+  <p class="text-muted" style="margin-bottom:1.5rem"><%= message %></p>
+  <a href="/" class="btn btn-outline">Go home</a>
+</div>
+<footer>
+  <p>&copy; <%= new Date().getFullYear() %> <%= appName %> &middot; Powered by Alz-Tech</p>
+</footer>
+</body>
+</html>

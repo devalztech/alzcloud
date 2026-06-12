@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> — <%= appName %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">☁️ <span><%= appName %></span></a>
+  <div class="nav-links">
+    <a href="/plans">Pricing</a>
+    <a href="/register" class="btn btn-primary btn-sm">Get started</a>
+  </div>
+</nav>
+<div class="container page" style="max-width:420px;">
+  <div class="card">
+    <h2 style="margin-bottom:.25rem">Sign in</h2>
+    <p class="text-muted text-sm" style="margin-bottom:1.5rem">Welcome back to <%= appName %></p>
+    <% if (error) { %>
+      <div class="alert alert-error"><%= error %></div>
+    <% } %>
+    <form method="POST" action="/login">
+      <input type="hidden" name="next" value="<%= next %>">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" name="email" required autofocus placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" name="password" required placeholder="••••••••">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top:.5rem">Sign in</button>
+    </form>
+    <p class="text-sm text-muted" style="margin-top:1.25rem;text-align:center">
+      No account? <a href="/register">Create one free</a>
+    </p>
+  </div>
+</div>
+<footer>
+  <p>&copy; <%= new Date().getFullYear() %> <%= appName %> &middot; Powered by Alz-Tech</p>
+</footer>
+</body>
+</html>
