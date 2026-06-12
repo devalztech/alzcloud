@@ -262,6 +262,27 @@ code { font-family: 'JetBrains Mono', monospace; background: var(--bg3); padding
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 @media (max-width: 500px) { .grid-2 { grid-template-columns: 1fr; } }
 
+/* NAV btn-primary text always white */
+.nav-links .btn-primary { color: #fff !important; }
+.nav-links .btn-primary:hover { color: #fff !important; }
+
+/* AUTH PAGES — full-height layout so footer stays at bottom */
+body.auth-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+body.auth-page .auth-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+}
+body.auth-page footer {
+  margin-top: 0;
+}
+
 footer {
   border-top: 1px solid var(--border);
   padding: 1.5rem;

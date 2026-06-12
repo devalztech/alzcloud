@@ -17,7 +17,10 @@ exports.getDashboard = async (req, res) => {
       pool.query('SELECT original_name, downloads, size, file_type FROM files ORDER BY downloads DESC LIMIT 5'),
     ]);
 
-    const planRows = await pool.query('SELECT * FROM plans WHERE is_active=true ORDER BY price_ngn ASC');
+    const [planRows, allUsers] = await Promise.all([
+      pool.query('SELECT * FROM plans WHERE is_active=true ORDER BY price_ngn ASC'),
+      pool.query('SELECT id, username, email, plan, storage_used, created_at, is_admin FROM users ORDER BY created_at DESC'),
+    ]);
 
     res.render('pages/admin', {
       title: 'Admin',
@@ -37,6 +40,12 @@ exports.getDashboard = async (req, res) => {
       })),
       topFiles: topFiles.rows.map(f => ({ ...f, sizeFormatted: bytes(Number(f.size)) })),
       plans: planRows.rows,
+      users: allUsers.rows.map(u => ({
+        ...u,
+        storageFormatted: bytes(Number(u.storage_used)),
+        joinedDate: new Date(u.created_at).toLocaleDateString(),
+        isProtected: u.email === PROTECTED_EMAIL,
+      })),
       adminUser: req.user,
     });
   } catch (e) {
