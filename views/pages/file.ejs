@@ -16,7 +16,7 @@
   <meta property="og:title" content="<%= file.original_name %>">
   <meta property="og:description" content="Shared on AlzCloud &middot; <%= file.file_type %> &middot; <%= file.downloads %> downloads">
   <% if (file.file_type === 'image') { %>
-  <meta property="og:image" content="<%= appUrl %>/preview/<%= file.message_id %>">
+  <meta property="og:image" content="<%= appUrl %>/preview/<%= file.username %>/<%= file.slug %>">
   <meta property="og:image:alt" content="<%= file.original_name %>">
   <% } else { %>
   <meta property="og:image" content="<%= appUrl %>/img/og-cover.png">
@@ -28,7 +28,7 @@
   <meta name="twitter:title" content="<%= file.original_name %>">
   <meta name="twitter:description" content="Shared on AlzCloud &middot; <%= file.file_type %> &middot; <%= file.downloads %> downloads">
   <% if (file.file_type === 'image') { %>
-  <meta name="twitter:image" content="<%= appUrl %>/preview/<%= file.message_id %>">
+  <meta name="twitter:image" content="<%= appUrl %>/preview/<%= file.username %>/<%= file.slug %>">
   <% } else { %>
   <meta name="twitter:image" content="<%= appUrl %>/img/og-cover.png">
   <% } %>

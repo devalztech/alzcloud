@@ -44,6 +44,7 @@
         <div class="alert alert-error"><%= error %></div>
       <% } %>
       <form method="POST" action="/register">
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
         <div class="form-group">
           <label class="form-label">Username</label>
           <input class="form-input" type="text" name="username" required autofocus placeholder="johndoe" pattern="[a-zA-Z0-9_]{3,30}">

@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> — Admin</title>
+  <meta name="csrf-token" content="<%= locals.csrfToken || '' %>">
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -76,7 +77,9 @@ function deleteUser(id, username) {
     confirmText: 'Delete',
     cancelText: 'Cancel',
     onConfirm: async () => {
-      const r = await fetch('/' + ADMIN_SLUG + '/users/' + id, { method: 'DELETE' });
+      const r = await fetch('/' + ADMIN_SLUG + '/users/' + id, {
+        method: 'DELETE', headers: { 'X-CSRF-Token': alzCsrfToken() }
+      });
       const d = await r.json();
       if (d.success) { alzToast('User deleted.', 'success'); location.reload(); }
       else alzToast(d.error || 'Delete failed.', 'error');

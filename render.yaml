@@ -29,6 +29,12 @@ services:
         sync: false           # Set manually in dashboard
       - key: TELEGRAM_CHANNEL_ID
         sync: false           # Set manually in dashboard
+      - key: TELEGRAM_API_ID
+        sync: false           # From https://my.telegram.org/apps — set manually in dashboard
+      - key: TELEGRAM_API_HASH
+        sync: false           # From https://my.telegram.org/apps — set manually in dashboard
+      - key: TELEGRAM_SESSION
+        sync: false           # Generated via `npm run gen-session` — set manually in dashboard
       - key: PAYSTACK_SECRET_KEY
         sync: false           # Set manually in dashboard
       - key: PAYSTACK_PUBLIC_KEY

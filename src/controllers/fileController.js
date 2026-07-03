@@ -99,8 +99,8 @@ exports.viewFile = async (req, res) => {
 
     const file = rows[0];
     const limits = await getPlanLimits(file.plan);
-    const url = `/dl/${file.message_id}`;
-    const previewUrl = `/preview/${file.message_id}`;
+    const url = `/dl/${file.username}/${file.slug}`;
+    const previewUrl = `/preview/${file.username}/${file.slug}`;
     const canStream = limits.liveStreaming && file.file_type === 'video';
     // Use HLS for files > 100MB, progressive for smaller
     const streamMode = file.size > 100 * 1024 * 1024 ? 'hls' : 'progressive';

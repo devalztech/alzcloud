@@ -1,7 +1,7 @@
 /**
  * AlzCloud — MTProto File Storage
  * Uses GramJS (Telegram user client) for 2GB upload/download limit.
- * Credentials: Alz cloud app (api_id: 27586230)
+ * Credentials are read from env — see TELEGRAM_API_ID / TELEGRAM_API_HASH below.
  */
 
 const { TelegramClient } = require('telegram');
@@ -13,8 +13,16 @@ const path = require('path');
 require('dotenv').config();
 
 // ── MTProto credentials (from my.telegram.org/apps) ──────────────────────────
-const API_ID   = 27586230;
-const API_HASH = '638e699ca88b5280146a55e959f1fde9';
+// Read from env only — these grant full access to the uploader's Telegram
+// account and must never be hardcoded in source again. The old pair was
+// committed to this repo's git history; treat it as burned and generate a
+// fresh app at my.telegram.org, then set these two on Render.
+const API_ID = parseInt(process.env.TELEGRAM_API_ID, 10);
+const API_HASH = process.env.TELEGRAM_API_HASH;
+
+if (!API_ID || !API_HASH) {
+  throw new Error('TELEGRAM_API_ID and TELEGRAM_API_HASH must be set in the environment.');
+}
 
 // ── Singleton client ──────────────────────────────────────────────────────────
 let _client = null;

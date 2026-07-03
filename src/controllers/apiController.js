@@ -45,7 +45,7 @@ exports.listFiles = async (req, res) => {
         ...f,
         size_human: bytes(Number(f.size)),
         url: `${process.env.APP_URL}/f/${f.slug}`,
-        download_url: `${process.env.APP_URL}/dl/${f.slug}`,
+        download_url: `${process.env.APP_URL}/dl/${req.user.username}/${f.slug}`,
       })),
       total: parseInt(total.rows[0].count),
       limit,
@@ -77,7 +77,7 @@ exports.getFile = async (req, res) => {
       is_public: f.is_public,
       created_at: f.created_at,
       url: `${process.env.APP_URL}/f/${f.slug}`,
-      download_url: `${process.env.APP_URL}/dl/${f.message_id}`,
+      download_url: `${process.env.APP_URL}/dl/${req.user.username}/${f.slug}`,
       embed_url: `${process.env.APP_URL}/embed/${f.slug}`,
     });
   } catch (e) {
@@ -121,7 +121,7 @@ exports.uploadFile = async (req, res) => {
       mime_type: file.mimetype,
       file_type: fileType,
       url: `${process.env.APP_URL}/f/${slug}`,
-      download_url: `${process.env.APP_URL}/dl/${stored.message_id}`,
+      download_url: `${process.env.APP_URL}/dl/${req.user.username}/${slug}`,
       embed_url: `${process.env.APP_URL}/embed/${slug}`,
     });
   } catch (e) {

@@ -11,6 +11,7 @@ for (var i = 0; i < files.length; i++) totalDl += files[i].downloads;
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> — AlzCloud</title>
   <meta name="robots" content="noindex, nofollow">
+  <meta name="csrf-token" content="<%= locals.csrfToken || '' %>">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236c63ff' stroke-width='2'%3E%3Cpath d='M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/css/style.css">
 </head>
