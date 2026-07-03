@@ -38,6 +38,7 @@
         <div class="alert alert-error"><%= error %></div>
       <% } %>
       <form method="POST" action="/login">
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
         <input type="hidden" name="next" value="<%= next %>">
         <div class="form-group">
           <label class="form-label">Email</label>

@@ -1,0 +1,33 @@
+
+# ── App ──────────────────────────────────────
+PORT=10000
+
+
+APP_NAME=AlzCloud
+
+APP_URL=https://alzcloud.onrender.com
+
+
+
+NODE_ENV=production
+
+
+SESSION_SECRET=jehdiebeu2iwbduehwh7s72562hevrhsbeishshdueuebeidurbrhrudusudhdhdhdhdhdururufufufufururururuurhrhrvrvrv
+
+
+
+# ── Telegram ─────────────────────────────────
+TELEGRAM_BOT_TOKEN=8839966851:AAH2mlByweHtOidvy3WrZZptFsnVCGFAPgY
+
+
+TELEGRAM_CHANNEL_ID=--1003982279912
+
+
+# ── Paystack ─────────────────────────────────
+PAYSTACK_SECRET_KEY=
+
+
+PAYSTACK_PUBLIC_KEY=
+
+# ── PostgreSQL ────────────────────────────────
+DATABASE_URL=postgresql://user:password@host:5432/alzcloud

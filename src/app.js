@@ -7,6 +7,8 @@ const path = require('path');
 const crypto = require('crypto');
 const { initDB, pool } = require('../config/db');
 const { loadUser } = require('./middleware/auth');
+const { attachCsrfToken } = require('./middleware/csrf');
+const { downgradeExpiredSubscriptions } = require('./utils/subscriptions');
 const routes = require('./routes/index');
 
 const app = express();
@@ -43,6 +45,7 @@ app.use(session({
 }));
 
 app.use(loadUser);
+app.use(attachCsrfToken);
 
 app.locals.appName = process.env.APP_NAME || 'AlzCloud';
 app.locals.appUrl = process.env.APP_URL || 'http://localhost:3000';
@@ -67,4 +70,11 @@ initDB().then(() => {
     console.log(`Admin path: /${ADMIN_SLUG}`);
     console.log(`ENV: ${process.env.NODE_ENV || 'development'}`);
   });
+
+  // Revert lapsed subscriptions to the free plan — once on boot, then hourly.
+  // Render keeps this as a persistent process, so no external cron is needed.
+  downgradeExpiredSubscriptions().catch(e => console.error('Subscription downgrade check failed:', e));
+  setInterval(() => {
+    downgradeExpiredSubscriptions().catch(e => console.error('Subscription downgrade check failed:', e));
+  }, 60 * 60 * 1000).unref();
 }).catch(e => { console.error('DB init failed:', e); process.exit(1); });

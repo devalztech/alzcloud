@@ -14,9 +14,16 @@
 const { TelegramClient } = require('telegram');
 const { StringSession } = require('telegram/sessions');
 const input = require('input'); // npm install input
+require('dotenv').config();
 
-const API_ID   = 27586230;
-const API_HASH = '638e699ca88b5280146a55e959f1fde9';
+const API_ID = parseInt(process.env.TELEGRAM_API_ID, 10);
+const API_HASH = process.env.TELEGRAM_API_HASH;
+
+if (!API_ID || !API_HASH) {
+  console.error('Set TELEGRAM_API_ID and TELEGRAM_API_HASH in your .env before running this script.');
+  console.error('Get a pair at https://my.telegram.org/apps');
+  process.exit(1);
+}
 
 (async () => {
   console.log('\n🔐 AlzCloud — MTProto Session Generator\n');

@@ -311,7 +311,7 @@
                 <td style="font-weight:500"><%= u.username %> <% if(u.is_admin){ %><span class="badge" style="background:var(--accent-glow);color:var(--accent2)">Admin</span><% } %></td>
                 <td style="color:var(--muted);font-size:.8rem"><%= u.email %></td>
                 <td>
-                  <select class="form-input" style="padding:.25rem .5rem;font-size:.78rem;width:auto" onchange="changePlan(<%= u.id %>, this.value)" <% if(u.isProtected){ %>disabled<% } %>>
+                  <select class="form-input" style="padding:.25rem .5rem;font-size:.78rem;width:auto" onchange="changePlan(<%= u.id %>, this.value)">
                     <option value="free" <%=u.plan==='free'?'selected':''%>>Free</option>
                     <option value="starter" <%=u.plan==='starter'?'selected':''%>>Starter</option>
                     <option value="pro" <%=u.plan==='pro'?'selected':''%>>Pro</option>
@@ -408,6 +408,7 @@
 
 <script>
 const ADMIN_SLUG = '<%= locals.adminSlug %>';
+const CSRF_TOKEN = '<%= locals.csrfToken || "" %>';
 
 // Section navigation
 function showSection(name, el) {
@@ -463,7 +464,9 @@ function closeModal() {
 async function doDeleteUser() {
   if (!pendingDeleteId) return;
   closeModal();
-  const r = await fetch('/' + ADMIN_SLUG + '/users/' + pendingDeleteId, { method: 'DELETE' });
+  const r = await fetch('/' + ADMIN_SLUG + '/users/' + pendingDeleteId, {
+    method: 'DELETE', headers: { 'X-CSRF-Token': CSRF_TOKEN }
+  });
   const d = await r.json();
   if (d.success) {
     showToast('User deleted.');
@@ -476,7 +479,9 @@ async function doDeleteUser() {
 // Change plan
 async function changePlan(id, plan) {
   const r = await fetch('/' + ADMIN_SLUG + '/users/' + id + '/plan', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan })
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+    body: JSON.stringify({ plan })
   });
   const d = await r.json();
   showToast(d.success ? 'Plan updated.' : (d.error || 'Failed.'), d.success);
@@ -493,7 +498,9 @@ async function savePlan(name) {
     live_streaming: document.getElementById('plan-' + name + '-stream').checked,
   };
   const r = await fetch('/' + ADMIN_SLUG + '/plans/' + name, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+    body: JSON.stringify(body)
   });
   const d = await r.json();
   showToast(d.success ? 'Plan saved!' : (d.error || 'Failed.'), d.success);

@@ -30,7 +30,8 @@ A full-stack SaaS file hosting platform that uses **Telegram as a storage backen
 
 - Node.js 18+
 - PostgreSQL database
-- Telegram bot token + channel
+- Telegram bot token + channel (for uploads)
+- Telegram **user account** (for MTProto storage — separate from the bot)
 - Paystack account
 
 ### 2. Create Telegram Bot & Channel
@@ -42,7 +43,21 @@ A full-stack SaaS file hosting platform that uses **Telegram as a storage backen
    - Forward a message from the channel to [@username_to_id_bot](https://t.me/username_to_id_bot)
    - Or use: `https://api.telegram.org/bot<TOKEN>/getUpdates` and post to the channel
 
-### 3. Install & Configure
+### 3. Get MTProto Credentials & Generate a Session
+
+Uploads/downloads go through a Telegram **user** client (GramJS), not the bot, since the Bot API caps files at 20MB.
+
+1. Go to [my.telegram.org/apps](https://my.telegram.org/apps) and log in with the phone number you want to use for storage
+2. Create an app — copy the `api_id` and `api_hash` into `TELEGRAM_API_ID` / `TELEGRAM_API_HASH` in `.env`
+3. Run `npm install` first (needed for the `telegram` + `input` packages), then:
+   ```bash
+   node scripts/gen_session.js
+   ```
+4. Follow the prompts (phone number, login code, 2FA if enabled) — copy the printed session string into `TELEGRAM_SESSION` in `.env`
+
+Keep all three of these secret — never commit `.env`, and never hardcode them in source.
+
+### 4. Install & Configure
 
 ```bash
 git clone <repo>
@@ -52,7 +67,7 @@ cp .env.example .env
 # Edit .env with your values
 ```
 
-### 4. Database Setup
+### 5. Database Setup
 
 Create a PostgreSQL database:
 ```sql
@@ -61,14 +76,14 @@ CREATE DATABASE alzcloud;
 
 The app auto-creates all tables on first start.
 
-### 5. Make yourself admin
+### 6. Make yourself admin
 
 After registering your account, run:
 ```sql
 UPDATE users SET is_admin = true WHERE email = 'your@email.com';
 ```
 
-### 6. Run
+### 7. Run
 
 ```bash
 npm start         # production

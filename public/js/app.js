@@ -1,5 +1,11 @@
 /* AlzCloud — Global JS */
 
+// CSRF token for state-changing fetch/XHR calls — read from the meta tag
+// the layout renders with the current session's token.
+function alzCsrfToken() {
+  return document.querySelector('meta[name="csrf-token"]')?.content || '';
+}
+
 // ── Toast ─────────────────────────────────────────────────────────────────
 (function() {
   const TOAST_HTML = `
@@ -100,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/upload');
+    xhr.setRequestHeader('X-CSRF-Token', alzCsrfToken());
     xhr.upload.onprogress = e => {
       if (e.lengthComputable && bar) bar.style.width = Math.round(e.loaded / e.total * 100) + '%';
     };
@@ -136,7 +143,10 @@ document.addEventListener('DOMContentLoaded', () => {
         cancelText: 'Cancel',
         onConfirm: async () => {
           try {
-            const r = await fetch('/files/' + id, { method: 'DELETE' });
+            const r = await fetch('/files/' + id, {
+              method: 'DELETE',
+              headers: { 'X-CSRF-Token': alzCsrfToken() }
+            });
             const d = await r.json();
             if (d.success) {
               alzToast('File deleted.', 'success');
