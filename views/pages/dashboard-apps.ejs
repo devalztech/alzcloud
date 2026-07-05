@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title><%= title %> — AlzCloud</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="csrf-token" content="<%= locals.csrfToken || '' %>">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <div class="topbar">
+    <a href="/dashboard" class="icon-btn"><i data-lucide="chevron-left"></i></a>
+    <strong style="font-family:'Space Grotesk',sans-serif">API Apps</strong>
+    <a href="/api" class="icon-btn"><i data-lucide="book-open"></i></a>
+  </div>
+
+  <main class="app-main no-nav" style="padding-bottom:110px">
+    <div class="section" style="padding-bottom:0">
+      <% if (!limits.apiAccess) { %>
+        <div class="card" style="text-align:center;padding:32px 20px">
+          <i data-lucide="lock" style="width:36px;height:36px;color:var(--muted-2);margin-bottom:10px"></i>
+          <h3 style="margin-bottom:6px">API access needs Starter or Pro</h3>
+          <p class="text-sm text-muted mb-2">Create named API keys, upload up to 2GB per file, and get real storage for your own apps.</p>
+          <a href="/plans" class="btn btn-primary">View plans</a>
+        </div>
+      <% } else { %>
+        <div class="card-flat flex justify-between items-center">
+          <div>
+            <div style="font-weight:700;font-size:.9rem">This month's apps</div>
+            <div class="text-sm text-muted"><%= usedThisMonth %> of <%= limits.maxApiApps %> used</div>
+          </div>
+          <button class="btn btn-primary btn-sm" id="create-app-btn"><i data-lucide="plus"></i> New app</button>
+        </div>
+
+        <div id="create-app-form" class="card mt-2" style="display:none;gap:8px" >
+          <input type="text" id="new-app-name" class="form-input" placeholder="App name (e.g. My Mobile App)" maxlength="100">
+          <button class="btn btn-primary" id="new-app-submit" style="margin-top:8px">Create app</button>
+        </div>
+      <% } %>
+    </div>
+
+    <% if (limits.apiAccess) { %>
+    <div class="section">
+      <div class="section-title">Your apps</div>
+      <% if (apps.length === 0) { %>
+        <div class="empty-state">
+          <i data-lucide="key"></i>
+          <p>No API apps yet. Each app gets its own key so you can track and revoke access separately.</p>
+        </div>
+      <% } else { %>
+        <% apps.forEach(app => { %>
+          <div class="app-card">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <div class="file-icon" style="background:var(--brand-tint);color:var(--brand)"><i data-lucide="key"></i></div>
+                <div>
+                  <div style="font-weight:700;font-size:.9rem"><%= app.name %></div>
+                  <div class="text-sm text-muted">Created <%= new Date(app.created_at).toLocaleDateString() %></div>
+                </div>
+              </div>
+              <button class="icon-btn danger" data-delete-app="<%= app.id %>" data-name="<%= app.name %>"><i data-lucide="trash-2"></i></button>
+            </div>
+            <div class="app-key-row">
+              <code><%= app.api_key %></code>
+              <button class="icon-btn" data-copy-key="<%= app.api_key %>"><i data-lucide="copy"></i></button>
+            </div>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+    <% } %>
+  </main>
+
+  <%- include('../partials/tabbar', { active: 'files', user }) %>
+</div>
+<%- include('../partials/scripts') %>
+</body>
+</html>

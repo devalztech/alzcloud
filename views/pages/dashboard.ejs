@@ -1,165 +1,108 @@
-<%
-const planColors = { free: '#8888a8', starter: '#6c63ff', pro: '#22d3a0' };
-const planColor = planColors[user.plan] || planColors.free;
-var totalDl = 0;
-for (var i = 0; i < files.length; i++) totalDl += files[i].downloads;
-%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title><%= title %> — AlzCloud</title>
   <meta name="robots" content="noindex, nofollow">
   <meta name="csrf-token" content="<%= locals.csrfToken || '' %>">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236c63ff' stroke-width='2'%3E%3Cpath d='M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-<nav>
-  <a href="/" class="logo">
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
-    <span><%= appName %></span>
-  </a>
-  <div class="nav-links">
-    <a href="/plans">Pricing</a>
-    <a href="/api">API Docs</a>
-    <a href="/dashboard">Dashboard</a>
-    <% if (user.is_admin) { %><a href="/<%= locals.adminSlug %>">Admin</a><% } %>
-    <a href="/logout" class="btn btn-outline btn-sm">Sign out</a>
-  </div>
-</nav>
-
-<div class="container page">
-
-  <div class="flex items-center justify-between" style="margin-bottom:1.5rem">
-    <div>
-      <h2>Dashboard</h2>
-      <p class="text-muted text-sm">Welcome back, <strong><%= user.username %></strong></p>
+<div class="app-shell">
+  <div class="topbar">
+    <a href="/" class="logo"><i data-lucide="cloud"></i><span><%= appName %></span></a>
+    <div class="topbar-action">
+      <span class="badge badge-<%= user.plan %>"><%= user.plan %></span>
+      <a href="/logout" class="icon-btn"><i data-lucide="log-out"></i></a>
     </div>
-    <span style="background:<%=planColor%>22;color:<%=planColor%>;border:1px solid <%=planColor%>44;padding:.25rem .75rem;border-radius:99px;font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">
-      <%= user.plan %>
-    </span>
   </div>
 
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-val"><%= files.length %></div>
-      <div class="stat-label">Files uploaded</div>
+  <main class="app-main">
+    <div class="section" style="padding-bottom:0">
+      <div class="card">
+        <div class="flex justify-between items-center mb-1">
+          <span class="text-sm text-muted">Storage used</span>
+          <span class="text-sm" style="font-weight:700"><%= storageUsed %> <span class="text-muted" style="font-weight:500">/ <%= storageMax %></span></span>
+        </div>
+        <% if (!unlimitedStorage) { %>
+          <div class="progress-bar"><div class="progress-fill" style="width:<%= storagePercent %>%"></div></div>
+        <% } %>
+        <div class="flex gap-3 mt-2 text-sm text-muted">
+          <span><i data-lucide="file" style="width:14px;height:14px;vertical-align:-2px"></i> Max <%= fileSizeLimit %>/file</span>
+        </div>
+      </div>
+
+      <% if (user.plan === 'free') { %>
+        <a href="/plans" class="card mt-2" style="display:block;background:linear-gradient(150deg,var(--brand-tint),var(--violet-tint));border:none">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i data-lucide="zap" style="color:var(--violet)"></i>
+              <div>
+                <div style="font-weight:700;font-size:.88rem">Upgrade for 2GB uploads + API</div>
+                <div class="text-sm text-muted">From ₦3,000/month</div>
+              </div>
+            </div>
+            <i data-lucide="chevron-right" style="color:var(--muted)"></i>
+          </div>
+        </a>
+      <% } else { %>
+        <a href="/dashboard/apps" class="card mt-2" style="display:block">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i data-lucide="key" style="color:var(--brand)"></i>
+              <div>
+                <div style="font-weight:700;font-size:.88rem"><%= apiApps.length %> API app<%= apiApps.length===1?'':'s' %></div>
+                <div class="text-sm text-muted"><%= apiAppsThisMonth %>/<%= limits.maxApiApps %> created this month</div>
+              </div>
+            </div>
+            <i data-lucide="chevron-right" style="color:var(--muted)"></i>
+          </div>
+        </a>
+      <% } %>
     </div>
-    <div class="stat-card">
-      <div class="stat-val"><%= storageUsed %></div>
-      <div class="stat-label">of <%= storageMax %> storage</div>
-      <div class="progress-bar mt-1">
-        <div class="progress-fill" style="width:<%= storagePercent %>%"></div>
+
+    <div class="section">
+      <div class="flex justify-between items-center mb-2">
+        <div class="section-title" style="margin-bottom:0">Your files</div>
+        <span class="text-sm text-muted"><%= files.length %> total</span>
+      </div>
+
+      <div class="card" style="padding:6px 16px">
+        <% if (files.length === 0) { %>
+          <div class="empty-state">
+            <i data-lucide="inbox"></i>
+            <p>No files yet. Tap the + button to upload your first file.</p>
+          </div>
+        <% } else { %>
+          <% files.forEach(f => { %>
+            <div class="file-row">
+              <div class="file-icon badge-<%= f.file_type %>" style="background:var(--surface)">
+                <i data-lucide="<%= f.file_type === 'video' ? 'video' : f.file_type === 'image' ? 'image' : f.file_type === 'audio' ? 'music' : (f.mime_type === 'application/pdf' ? 'file-text' : 'file') %>"></i>
+              </div>
+              <div class="file-meta">
+                <div class="file-name"><%= f.original_name %></div>
+                <div class="file-sub"><%= f.sizeFormatted %> · <%= f.downloads %> download<%= f.downloads===1?'':'s' %></div>
+              </div>
+              <button class="icon-btn" data-copy="<%= appUrl %>/f/<%= f.slug %>"><i data-lucide="copy"></i></button>
+              <a href="/f/<%= f.slug %>" class="icon-btn"><i data-lucide="external-link"></i></a>
+              <button class="icon-btn danger" data-delete-file="<%= f.id %>" data-name="<%= f.original_name %>"><i data-lucide="trash-2"></i></button>
+            </div>
+          <% }) %>
+        <% } %>
       </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-val"><%= totalDl %></div>
-      <div class="stat-label">Total downloads</div>
-    </div>
-  </div>
 
-  <% if (user.plan !== 'free') { %>
-  <div class="card" style="margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
-    <div>
-      <div style="font-size:.78rem;color:var(--muted);margin-bottom:.2rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Your API Key</div>
-      <code style="font-size:.82rem;color:var(--accent2);word-break:break-all"><%= user.api_key || 'Not generated yet' %></code>
-    </div>
-    <button class="btn btn-outline btn-sm" data-copy="<%= user.api_key %>">
-      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-      Copy Key
-    </button>
-  </div>
-  <% } %>
+    <p class="mini-footer">&copy; <%= new Date().getFullYear() %> <%= appName %></p>
+  </main>
 
-  <!-- Upload Zone -->
-  <div class="card" style="margin-bottom:1.5rem">
-    <div id="upload-zone">
-      <div class="upload-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      </div>
-      <p><strong>Click to upload</strong> or drag and drop</p>
-      <p class="text-sm" style="margin-top:.35rem">Any file type &middot; Max <%= fileSizeLimit %> per file</p>
-      <input type="file" id="file-input" style="display:none" multiple>
-    </div>
-    <div id="upload-progress" style="display:none;margin-top:1rem">
-      <div class="progress-bar"><div class="progress-fill" id="upload-bar" style="width:0%"></div></div>
-      <p class="text-sm text-muted mt-1" id="upload-status">Uploading...</p>
-    </div>
-  </div>
+  <button class="fab" id="upload-zone" data-endpoint="/upload" data-max-bytes="<%= limits.fileSize %>">
+    <i data-lucide="plus"></i>
+  </button>
+  <input type="file" id="file-input" style="display:none">
 
-  <!-- Files Table -->
-  <div class="card">
-    <div class="flex items-center justify-between" style="margin-bottom:1rem">
-      <h3>Your files</h3>
-      <span class="text-sm text-muted"><%= files.length %> file<%= files.length !== 1 ? 's' : '' %></span>
-    </div>
-
-    <% if (files.length === 0) { %>
-      <div style="text-align:center;padding:3rem 1rem;color:var(--muted)">
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:.75rem;opacity:.4"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-        <p>No files yet. Upload your first file above.</p>
-      </div>
-    <% } else { %>
-      <div style="overflow-x:auto">
-        <table class="files-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Size</th>
-              <th>Downloads</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% for (var i = 0; i < files.length; i++) { var f = files[i]; %>
-            <tr>
-              <td>
-                <div class="file-name" title="<%= f.original_name %>"><%= f.original_name %></div>
-                <div class="text-sm text-muted" style="font-family:'JetBrains Mono',monospace;font-size:.72rem"><%= f.slug %></div>
-              </td>
-              <td><span class="file-type-badge badge-<%= f.file_type %>"><%= f.file_type %></span></td>
-              <td class="text-muted"><%= f.sizeFormatted %></td>
-              <td class="text-muted"><%= f.downloads %></td>
-              <td>
-                <div class="flex gap-1" style="flex-wrap:wrap">
-                  <a href="/f/<%= f.slug %>" target="_blank" class="btn btn-outline btn-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                    View
-                  </a>
-                  <button class="btn btn-outline btn-sm" data-copy="<%= appUrl %>/f/<%= f.slug %>">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                    Copy
-                  </button>
-                  <button class="btn btn-danger btn-sm" data-delete-file="<%= f.id %>" data-name="<%= f.original_name %>">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-                    Delete
-                  </button>
-                </div>
-              </td>
-            </tr>
-            <% } %>
-          </tbody>
-        </table>
-      </div>
-    <% } %>
-  </div>
-
-  <% if (user.plan === 'free') { %>
-    <div class="alert alert-info" style="margin-top:1.5rem;display:flex;align-items:center;gap:.6rem">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-      Upgrade to <strong>Starter</strong> for 50GB storage, API access, and live video streaming.
-      <a href="/plans" style="margin-left:.25rem;font-weight:600">See plans &rarr;</a>
-    </div>
-  <% } %>
-
+  <%- include('../partials/tabbar', { active: 'files', user }) %>
 </div>
-
-<footer>
-  <p>&copy; <%= new Date().getFullYear() %> <%= appName %> &middot; Powered by Alz-Tech</p>
-</footer>
-<script src="/js/app.js"></script>
+<%- include('../partials/scripts') %>
 </body>
 </html>

@@ -18,15 +18,18 @@ exports.getPlans = async (req, res) => {
 
 exports.initiate = async (req, res) => {
   const { plan } = req.params;
+  const cycle = req.params.cycle === 'yearly' ? 'yearly' : 'monthly';
   try {
     const { rows } = await pool.query('SELECT * FROM plans WHERE name=$1 AND is_active=true', [plan]);
-    if (!rows[0] || rows[0].price_ngn === 0) return res.redirect('/plans');
+    if (!rows[0]) return res.redirect('/plans');
     const planData = rows[0];
+    const amountNgn = cycle === 'yearly' ? planData.price_ngn_yearly : planData.price_ngn;
+    if (!amountNgn || amountNgn === 0) return res.redirect('/plans');
 
     const { data } = await axios.post('https://api.paystack.co/transaction/initialize', {
       email: req.user.email,
-      amount: planData.price_ngn * 100, // kobo
-      metadata: { user_id: req.user.id, plan },
+      amount: amountNgn * 100, // kobo
+      metadata: { user_id: req.user.id, plan, cycle },
       callback_url: `${process.env.APP_URL}/billing/verify`
     }, { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } });
 
@@ -44,13 +47,14 @@ exports.verify = async (req, res) => {
       headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
     });
     if (data.data.status === 'success') {
-      const { user_id, plan } = data.data.metadata;
+      const { user_id, plan, cycle } = data.data.metadata;
       const expires = new Date();
-      expires.setDate(expires.getDate() + 30);
+      if (cycle === 'yearly') expires.setDate(expires.getDate() + 365);
+      else expires.setDate(expires.getDate() + 30);
       await pool.query('UPDATE users SET plan=$1 WHERE id=$2', [plan, user_id]);
       await pool.query(
-        'INSERT INTO subscriptions (user_id, plan, paystack_ref, amount, expires_at) VALUES ($1,$2,$3,$4,$5)',
-        [user_id, plan, reference, data.data.amount, expires]
+        'INSERT INTO subscriptions (user_id, plan, billing_cycle, paystack_ref, amount, expires_at) VALUES ($1,$2,$3,$4,$5,$6)',
+        [user_id, plan, cycle || 'monthly', reference, data.data.amount, expires]
       );
       res.redirect('/dashboard?upgraded=1');
     } else {

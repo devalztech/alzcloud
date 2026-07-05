@@ -1,4 +1,4 @@
-# ☁️ AlzCloud
+# AlzCloud
 
 A full-stack SaaS file hosting platform that uses **Telegram as a storage backend** — zero storage costs, unlimited capacity.
 
@@ -6,21 +6,25 @@ A full-stack SaaS file hosting platform that uses **Telegram as a storage backen
 
 ## Features
 
-- 📁 Upload files, images, videos, audio to Telegram
-- 🔗 Instant public shareable links
-- 👤 User accounts with plan-based limits
-- 💳 Paystack payment integration (NGN)
-- 📊 Download stats per file
-- 🛡️ Admin panel (user management, plan control)
-- 🌑 Clean dark UI
+- Anonymous uploads on the home page — no account needed, up to 500MB
+- Upload files, images, videos, audio to Telegram
+- Instant public shareable links, with live preview for images/video/audio/PDF
+- User accounts with plan-based limits (unlimited storage on Free, capped only per-file)
+- Named API apps — multiple keys per account, quota'd per plan per month
+- Paystack payment integration (NGN), monthly or yearly billing
+- Download stats per file
+- Admin panel (user management, plan control)
+- Mobile-first, light-theme UI
 
 ## Plans
 
 | Plan | Storage | File size | Price |
 |------|---------|-----------|-------|
-| Free | 500MB | 50MB | ₦0 |
-| Pro | 10GB | 500MB | ₦1,500/mo |
-| Business | 100GB | 2GB | ₦5,000/mo |
+| Free | Unlimited | 500MB | ₦0 |
+| Starter | 100GB | 1GB | ₦3,000/mo · ₦25,000/yr |
+| Pro | 500GB | 2GB | ₦5,000/mo · ₦30,000/yr |
+
+Starter includes up to 5 new API apps/month; Pro includes up to 10. Anonymous (logged-out) uploads are capped at 500MB with no account.
 
 ---
 
