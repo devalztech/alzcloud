@@ -56,6 +56,7 @@ const initDB = async () => {
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         name VARCHAR(100) NOT NULL,
+        app_slug VARCHAR(120),
         api_key VARCHAR(64) UNIQUE NOT NULL,
         revoked BOOLEAN DEFAULT false,
         created_at TIMESTAMP DEFAULT NOW()
@@ -87,6 +88,8 @@ const initDB = async () => {
       ALTER TABLE plans ADD COLUMN IF NOT EXISTS price_ngn_yearly INTEGER DEFAULT 0;
       ALTER TABLE plans ADD COLUMN IF NOT EXISTS max_api_apps INTEGER DEFAULT 0;
       ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS billing_cycle VARCHAR(10) DEFAULT 'monthly';
+      ALTER TABLE api_apps ADD COLUMN IF NOT EXISTS app_slug VARCHAR(120);
+      ALTER TABLE files ADD COLUMN IF NOT EXISTS api_app_id INTEGER REFERENCES api_apps(id) ON DELETE SET NULL;
     `);
 
     // Plan matrix. storage_limit = -1 means unlimited (Free: capped per-file,
@@ -121,6 +124,26 @@ const initDB = async () => {
       WHERE api_key IS NOT NULL
       ON CONFLICT (api_key) DO NOTHING;
     `);
+
+    // Backfill app_slug for any api_apps row that predates that column
+    // (existing "Default" apps from the migration above, or older rows).
+    // Done in JS since uniqueness-per-user needs a de-dupe check per row.
+    const { slugifyAppName, uniqueSuffix } = require('../src/utils/urls');
+    const { rows: needsSlug } = await client.query(`SELECT id, user_id, name FROM api_apps WHERE app_slug IS NULL`);
+    for (const app of needsSlug) {
+      let slug = slugifyAppName(app.name);
+      let attempt = 0;
+      while (attempt < 5) {
+        const { rows: clash } = await client.query(
+          'SELECT id FROM api_apps WHERE user_id=$1 AND app_slug=$2 AND id != $3',
+          [app.user_id, slug, app.id]
+        );
+        if (clash.length === 0) break;
+        slug = `${slugifyAppName(app.name)}-${uniqueSuffix()}`;
+        attempt++;
+      }
+      await client.query('UPDATE api_apps SET app_slug=$1 WHERE id=$2', [slug, app.id]);
+    }
 
     await client.query(`UPDATE users SET is_admin = true WHERE email = 'confidencerich97@gmail.com';`);
 

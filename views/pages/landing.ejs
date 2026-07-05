@@ -56,6 +56,9 @@
     <a href="/" class="logo"><i data-lucide="cloud"></i><span><%= appName %></span></a>
     <div class="topbar-action">
       <% if (user) { %>
+        <% if (user.is_admin && locals.adminSlug) { %>
+          <a href="/<%= locals.adminSlug %>" class="icon-btn" title="Admin"><i data-lucide="shield"></i></a>
+        <% } %>
         <a href="/dashboard" class="btn btn-outline btn-sm">Dashboard</a>
       <% } else { %>
         <a href="/login" class="btn btn-ghost btn-sm">Sign in</a>
@@ -89,6 +92,7 @@
     <div id="upload-result"></div>
 
     <div class="section">
+      <% if (!user) { %>
       <div class="card" style="background:linear-gradient(150deg,var(--brand-tint),var(--violet-tint));border:none">
         <div class="flex items-center gap-2 mb-2">
           <i data-lucide="sparkles" style="color:var(--violet)"></i>
@@ -104,6 +108,20 @@
         </div>
         <a href="/plans" class="auth-switch" style="display:block">See all plans →</a>
       </div>
+      <% } else if (user.plan !== 'pro') { %>
+      <a href="/plans" class="card" style="display:block;background:linear-gradient(150deg,var(--brand-tint),var(--violet-tint));border:none">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i data-lucide="zap" style="color:var(--violet)"></i>
+            <div>
+              <div style="font-weight:700;font-size:.9rem"><%= user.plan === 'free' ? 'Upgrade for 2GB uploads + API' : 'Upgrade to Pro' %></div>
+              <div class="text-sm text-muted"><%= user.plan === 'free' ? 'From ₦3,000/month' : '2GB uploads · 10 API apps/month' %></div>
+            </div>
+          </div>
+          <i data-lucide="chevron-right" style="color:var(--muted)"></i>
+        </div>
+      </a>
+      <% } %>
     </div>
 
     <p class="mini-footer">&copy; <%= new Date().getFullYear() %> <%= appName %> · Powered by Alz-Tech</p>

@@ -2,13 +2,13 @@ User-agent: *
 Allow: /
 Allow: /plans
 Allow: /api
+Disallow: /api/
+Disallow: /free/
 Disallow: /dashboard
 Disallow: /upload
 Disallow: /files/
 Disallow: /billing/
 Disallow: /logout
-Disallow: /dl/
-Disallow: /preview/
 Disallow: /embed/
 
 Sitemap: https://cloud.alz.name.ng/sitemap.xml

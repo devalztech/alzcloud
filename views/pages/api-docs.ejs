@@ -44,7 +44,7 @@
       <h1 style="font-size:1.35rem">AlzCloud API</h1>
       <p class="text-sm text-muted mb-2">Programmatic file storage — available on <strong>Starter</strong> and <strong>Pro</strong>. Manage keys under <a href="/dashboard/apps">My Apps</a>.</p>
       <div class="jump-row">
-        <a href="#auth">Auth</a><a href="#errors">Errors</a><a href="#me">Account</a><a href="#storage">Storage</a><a href="#list">List</a><a href="#upload">Upload</a><a href="#delete">Delete</a>
+        <a href="#auth">Auth</a><a href="#errors">Errors</a><a href="#me">Account</a><a href="#storage">Storage</a><a href="#list">List</a><a href="#upload">Upload</a><a href="#update">Update</a><a href="#delete">Delete</a>
       </div>
     </div>
 
@@ -101,6 +101,7 @@
       </div>
 
       <h2 class="api-h2" id="list">List files</h2>
+      <p class="text-sm text-muted mb-1">Scoped to the calling app's key — you'll only see files this specific app uploaded, not other apps on your account or your dashboard uploads.</p>
       <div class="endpoint">
         <div class="endpoint-header">
           <span class="method method-get">GET</span><span class="endpoint-path">/api/v1/files</span><span class="endpoint-desc">List files uploaded by this app's key</span>
@@ -115,12 +116,13 @@
           </table>
           <pre><code>{
   "files": [{
-    "original_name": "video.mp4",
+    "name": "video.mp4",
     "slug": "abc123def456",
     "size_human": "50 MB",
     "file_type": "video",
+    "is_public": true,
     "url": "<%= appUrl %>/f/abc123def456",
-    "download_url": "<%= appUrl %>/dl/your_username/abc123def456",
+    "download_url": "<%= appUrl %>/api/your_username/your-app-name/abc123def456/video.mp4",
     "embed_url": "<%= appUrl %>/embed/abc123def456"
   }],
   "total": 42, "limit": 20, "offset": 0
@@ -142,6 +144,18 @@ const res = await fetch('<%= appUrl %>/api/v1/upload', {
   headers: { 'X-API-Key': 'your_app_key' },
   body: form,
 });</code></pre>
+        </div>
+      </div>
+
+      <h2 class="api-h2" id="update">Update file</h2>
+      <p class="text-sm text-muted mb-1">Rename a file and/or toggle its public visibility. Send only the fields you want to change.</p>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-post" style="background:var(--warning-tint);color:var(--warning)">PATCH</span><span class="endpoint-path">/api/v1/files/:slug</span><span class="endpoint-desc"></span></div>
+        <div class="endpoint-body">
+          <pre><code>curl -X PATCH <%= appUrl %>/api/v1/files/abc123def456 \
+  -H "X-API-Key: your_app_key" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "renamed.mp4", "is_public": false}'</code></pre>
         </div>
       </div>
 

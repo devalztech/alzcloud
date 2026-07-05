@@ -160,17 +160,8 @@ const uploadFile = async (buffer, filename, mimeType) => {
   }
 };
 
-// ── Get a download URL for a stored file ─────────────────────────────────────
-// MTProto doesn't give direct URLs like the Bot API does.
-// We route downloads through our own /dl/:slug endpoint which streams via GramJS.
-// file_id stored in DB is the message_id (as string) for MTProto files.
-const getFileUrl = async (file_id) => {
-  // Return a relative download URL — our express route handles streaming
-  return `/dl/${file_id}`;
-};
-
 // ── Stream download a file from Telegram by message_id ───────────────────────
-// Called by the new /dl/:messageId express route
+// Called by the /free/... and /api/... express routes (see routes/index.js)
 const streamFileToResponse = async (messageId, res) => {
   const client = await getClient();
   const channelId = process.env.TELEGRAM_CHANNEL_ID;
@@ -242,4 +233,4 @@ const deleteMessage = async (message_id) => {
 process.on('SIGINT',  () => { if (_client) _client.disconnect(); process.exit(0); });
 process.on('SIGTERM', () => { if (_client) _client.disconnect(); process.exit(0); });
 
-module.exports = { uploadFile, getFileUrl, deleteMessage, streamFileToResponse, getClient };
+module.exports = { uploadFile, deleteMessage, streamFileToResponse, getClient };

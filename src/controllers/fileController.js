@@ -1,9 +1,10 @@
 const fs = require('fs');
 const { pool } = require('../../config/db');
-const { uploadFile, getFileUrl, deleteMessage } = require('../utils/telegram');
+const { uploadFile, deleteMessage } = require('../utils/telegram');
 const { v4: uuidv4 } = require('uuid');
 const bytes = require('bytes');
 const { getPlanLimits, isUnlimited, ANON_FILE_SIZE_LIMIT } = require('../utils/plans');
+const { buildFileUrl } = require('../utils/urls');
 
 exports.getDashboard = async (req, res) => {
   try {
@@ -118,10 +119,12 @@ exports.anonymousUpload = async (req, res) => {
       [stored.file_id, stored.file_unique_id, file.name, slug, file.mimetype, file.size, fileType, stored.message_id]
     );
 
+    const downloadUrl = buildFileUrl({ slug, original_name: file.name, api_app_id: null }, null, null);
     res.json({
       success: true, slug, name: file.name, size: file.size, size_human: bytes(file.size),
       mime_type: file.mimetype, file_type: fileType,
       url: `${process.env.APP_URL}/f/${slug}`,
+      download_url: downloadUrl,
     });
   } catch (e) {
     console.error('Anonymous upload error:', e);
@@ -134,7 +137,11 @@ exports.anonymousUpload = async (req, res) => {
 exports.viewFile = async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT f.*, u.username, u.plan FROM files f LEFT JOIN users u ON f.user_id=u.id WHERE f.slug=$1',
+      `SELECT f.*, u.username, u.plan, a.app_slug
+       FROM files f
+       LEFT JOIN users u ON f.user_id=u.id
+       LEFT JOIN api_apps a ON f.api_app_id = a.id
+       WHERE f.slug=$1`,
       [req.params.slug]
     );
     if (!rows[0]) return res.status(404).render('pages/error', { title: '404', message: 'File not found.', user: res.locals.user });
@@ -142,9 +149,7 @@ exports.viewFile = async (req, res) => {
     const file = rows[0];
     const isAnonymous = !file.username;
     const limits = isAnonymous ? null : await getPlanLimits(file.plan);
-    const namespace = isAnonymous ? 'anon' : file.username;
-    const url = `/dl/${namespace}/${file.slug}`;
-    const previewUrl = `/preview/${namespace}/${file.slug}`;
+    const url = buildFileUrl(file, file.username, file.app_slug);
     const canStream = !!limits?.liveStreaming && file.file_type === 'video';
     // Use HLS for files > 100MB, progressive for smaller
     const streamMode = file.size > 100 * 1024 * 1024 ? 'hls' : 'progressive';
@@ -153,7 +158,7 @@ exports.viewFile = async (req, res) => {
       title: file.original_name,
       file,
       url,
-      previewUrl,
+      previewUrl: url,
       canStream,
       streamMode,
       fileSize: bytes(Number(file.size)),

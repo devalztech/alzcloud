@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { pool } = require('../../config/db');
 
-const RESERVED_USERNAMES = ['anon', 'anonymous', 'admin', 'api', 'root', 'support', 'alzcloud'];
+const RESERVED_USERNAMES = ['anon', 'anonymous', 'admin', 'api', 'free', 'v1', 'root', 'support', 'alzcloud'];
 
 exports.getRegister = (req, res) => res.render('pages/register', { title: 'Create Account', error: null });
 exports.getLogin = (req, res) => res.render('pages/login', { title: 'Sign In', error: null, next: req.query.next || '/dashboard' });
@@ -22,14 +22,15 @@ exports.postRegister = async (req, res) => {
       'INSERT INTO users (username, email, password) VALUES ($1,$2,$3) RETURNING id, is_admin',
       [username.toLowerCase(), email.toLowerCase(), hash]
     );
-    req.session.userId = r.rows[0].id;
-    req.session.isAdmin = r.rows[0].is_admin;
-    // Generate new admin slug each login for admins
-    if (r.rows[0].is_admin) {
-      const crypto = require('crypto');
-      req.session.adminSlug = crypto.randomBytes(6).toString('hex');
-    }
-    res.redirect('/dashboard');
+    // Regenerate the session on auth so a pre-login session ID (which an
+    // attacker could have planted — session fixation) is never reused.
+    req.session.regenerate(err => {
+      if (err) return res.render('pages/register', { title: 'Create Account', error: 'Registration failed. Try again.' });
+      req.session.userId = r.rows[0].id;
+      req.session.isAdmin = r.rows[0].is_admin;
+      req.session.ua = req.headers['user-agent'] || '';
+      res.redirect('/dashboard');
+    });
   } catch (e) {
     const msg = e.code === '23505' ? 'Username or email already taken.' : 'Registration failed. Try again.';
     res.render('pages/register', { title: 'Create Account', error: msg });
@@ -44,9 +45,13 @@ exports.postLogin = async (req, res) => {
     if (!r.rows[0]) return res.render('pages/login', { title: 'Sign In', error: 'Invalid credentials.', next });
     const ok = await bcrypt.compare(password, r.rows[0].password);
     if (!ok) return res.render('pages/login', { title: 'Sign In', error: 'Invalid credentials.', next });
-    req.session.userId = r.rows[0].id;
-    req.session.isAdmin = r.rows[0].is_admin;
-    res.redirect(next);
+    req.session.regenerate(err => {
+      if (err) return res.render('pages/login', { title: 'Sign In', error: 'Login failed.', next });
+      req.session.userId = r.rows[0].id;
+      req.session.isAdmin = r.rows[0].is_admin;
+      req.session.ua = req.headers['user-agent'] || '';
+      res.redirect(next);
+    });
   } catch (e) {
     res.render('pages/login', { title: 'Sign In', error: 'Login failed.', next });
   }

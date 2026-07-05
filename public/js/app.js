@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderResult(d) {
     const iconName = alzIconForType(d.file_type, d.mime_type);
     const canPreview = alzCanPreview(d.file_type, d.mime_type);
-    const previewUrl = d.url ? d.url.replace('/f/', '/preview/anon/') : null;
+    const previewUrl = d.download_url || null;
     let previewHtml = '';
     if (canPreview && previewUrl) {
       if (d.file_type === 'image') previewHtml = `<img class="result-preview" src="${previewUrl}" alt="${d.name}">`;

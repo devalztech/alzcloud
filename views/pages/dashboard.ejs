@@ -14,6 +14,9 @@
     <a href="/" class="logo"><i data-lucide="cloud"></i><span><%= appName %></span></a>
     <div class="topbar-action">
       <span class="badge badge-<%= user.plan %>"><%= user.plan %></span>
+      <% if (user.is_admin && locals.adminSlug) { %>
+        <a href="/<%= locals.adminSlug %>" class="icon-btn" title="Admin"><i data-lucide="shield"></i></a>
+      <% } %>
       <a href="/logout" class="icon-btn"><i data-lucide="log-out"></i></a>
     </div>
   </div>
