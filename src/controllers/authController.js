@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
 const { pool } = require('../../config/db');
+
+const RESERVED_USERNAMES = ['anon', 'anonymous', 'admin', 'api', 'root', 'support', 'alzcloud'];
 
 exports.getRegister = (req, res) => res.render('pages/register', { title: 'Create Account', error: null });
 exports.getLogin = (req, res) => res.render('pages/login', { title: 'Sign In', error: null, next: req.query.next || '/dashboard' });
@@ -11,12 +12,15 @@ exports.postRegister = async (req, res) => {
     return res.render('pages/register', { title: 'Create Account', error: 'All fields required.' });
   if (password.length < 6)
     return res.render('pages/register', { title: 'Create Account', error: 'Password must be at least 6 characters.' });
+  if (RESERVED_USERNAMES.includes(username.toLowerCase()))
+    return res.render('pages/register', { title: 'Create Account', error: 'That username is reserved. Please choose another.' });
   try {
     const hash = await bcrypt.hash(password, 10);
-    const apiKey = uuidv4().replace(/-/g, '');
+    // No api_key here — Free plan has no API access. A key is only ever
+    // created when the user makes an API app after upgrading (apiAppsController).
     const r = await pool.query(
-      'INSERT INTO users (username, email, password, api_key) VALUES ($1,$2,$3,$4) RETURNING id, is_admin',
-      [username.toLowerCase(), email.toLowerCase(), hash, apiKey]
+      'INSERT INTO users (username, email, password) VALUES ($1,$2,$3) RETURNING id, is_admin',
+      [username.toLowerCase(), email.toLowerCase(), hash]
     );
     req.session.userId = r.rows[0].id;
     req.session.isAdmin = r.rows[0].is_admin;

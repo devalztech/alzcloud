@@ -4,11 +4,16 @@ const file = require('../controllers/fileController');
 const billing = require('../controllers/billingController');
 const admin = require('../controllers/adminController');
 const api = require('../controllers/apiController');
+const apiApps = require('../controllers/apiAppsController');
 const { requireAuth, requireAdmin, requireApiKey } = require('../middleware/auth');
 const { streamFileToResponse } = require('../utils/telegram');
 const { pool } = require('../../config/db');
 const { rateLimit } = require('../middleware/rateLimit');
 const { verifyCsrfToken } = require('../middleware/csrf');
+const { ANON_FILE_SIZE_LIMIT } = require('../utils/plans');
+
+// Reserved path segment for logged-out uploads — see resolveFile() below.
+const ANON_NS = 'anon';
 
 // ── Rate limiters ──────────────────────────────────────────────────────────
 // Brute-force guard on auth forms. Renders back into the same page so it
@@ -33,6 +38,14 @@ const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, max: 30,
   keyFn: req => 'upload:' + (req.user?.id || req.ip)
 });
+// Anonymous uploads have no account behind them, so keep this tighter and
+// purely IP-based — this is the only throttle standing between the home
+// page and unlimited free storage on the Telegram backend.
+const anonUploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, max: 12,
+  keyFn: req => 'anon-upload:' + req.ip,
+  onLimit: (req, res) => res.status(429).json({ error: 'Too many uploads from this device. Create a free account to keep uploading, or try again later.' })
+});
 // Public stream routes — generous since embeds/pages legitimately reload these.
 const streamLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, max: 120,
@@ -49,7 +62,8 @@ module.exports = function(adminSlug) {
   const router = express.Router();
 
   // ── Public ──────────────────────────────────────────────────────────────────
-  router.get('/', (req, res) => res.render('pages/landing', { title: 'AlzCloud — File Hosting Powered by Telegram' }));
+  router.get('/', (req, res) => res.render('pages/landing', { title: 'AlzCloud — Upload & Share', anonMaxBytes: ANON_FILE_SIZE_LIMIT }));
+  router.post('/upload/anonymous', anonUploadLimiter, file.anonymousUpload);
   router.get('/register', auth.getRegister);
   router.post('/register', registerLimiter, verifyCsrfToken, auth.postRegister);
   router.get('/login', auth.getLogin);
@@ -81,7 +95,12 @@ module.exports = function(adminSlug) {
   // Look up a file by owner username + slug. Namespaced so one developer's
   // files can never be enumerated or guessed via another developer's URLs,
   // and so the internal Telegram message_id is never exposed publicly.
+  // The reserved "anon" namespace covers logged-out uploads (user_id IS NULL).
   async function resolveFile(username, slug) {
+    if (username.toLowerCase() === ANON_NS) {
+      const { rows } = await pool.query('SELECT * FROM files WHERE user_id IS NULL AND slug=$1', [slug]);
+      return rows[0] || null;
+    }
     const { rows } = await pool.query(
       `SELECT f.* FROM files f JOIN users u ON f.user_id = u.id
        WHERE u.username = $1 AND f.slug = $2`,
@@ -118,8 +137,13 @@ module.exports = function(adminSlug) {
   router.get('/dashboard', requireAuth, file.getDashboard);
   router.post('/upload', requireAuth, uploadLimiter, verifyCsrfToken, file.uploadFile);
   router.delete('/files/:id', requireAuth, verifyCsrfToken, file.deleteFile);
-  router.get('/billing/upgrade/:plan', requireAuth, billing.initiate);
+  router.get('/billing/upgrade/:plan/:cycle', requireAuth, billing.initiate);
   router.get('/billing/verify', billing.verify);
+
+  // My API apps (named keys) — session-authenticated dashboard management.
+  router.get('/dashboard/apps', requireAuth, apiApps.page);
+  router.post('/apps', requireAuth, verifyCsrfToken, apiApps.create);
+  router.delete('/apps/:id', requireAuth, verifyCsrfToken, apiApps.remove);
 
   // ── Admin (dynamic slug) ────────────────────────────────────────────────────
   router.get(`/${adminSlug}`, requireAdmin, admin.getDashboard);

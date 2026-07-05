@@ -8,25 +8,22 @@ const { pool } = require('../../config/db');
 const { uploadFile, deleteMessage } = require('../utils/telegram');
 const { v4: uuidv4 } = require('uuid');
 const bytes = require('bytes');
-
-async function getPlanLimits(planName) {
-  const { rows } = await pool.query('SELECT * FROM plans WHERE name=$1', [planName]);
-  if (!rows[0]) return { storage: 524288000, fileSize: 524288000 };
-  return { storage: Number(rows[0].storage_limit), fileSize: Number(rows[0].file_size_limit) };
-}
+const { getPlanLimits, isUnlimited } = require('../utils/plans');
 
 // GET /api/v1/me
 exports.getMe = async (req, res) => {
   const limits = await getPlanLimits(req.user.plan);
+  const unlimited = isUnlimited(limits.storage);
   res.json({
     id: req.user.id,
     username: req.user.username,
     email: req.user.email,
     plan: req.user.plan,
+    api_app: req.apiApp?.name || null,
     storage_used: req.user.storage_used,
     storage_used_human: bytes(Number(req.user.storage_used)),
-    storage_limit: limits.storage,
-    storage_limit_human: bytes(limits.storage),
+    storage_limit: unlimited ? null : limits.storage,
+    storage_limit_human: unlimited ? 'Unlimited' : bytes(limits.storage),
   });
 };
 
@@ -95,7 +92,7 @@ exports.uploadFile = async (req, res) => {
 
     if (file.size > limits.fileSize) return res.status(400).json({ error: `File too large. Max: ${bytes(limits.fileSize)}` });
     const newStorage = Number(req.user.storage_used) + file.size;
-    if (newStorage > limits.storage) return res.status(400).json({ error: 'Storage limit reached.' });
+    if (!isUnlimited(limits.storage) && newStorage > limits.storage) return res.status(400).json({ error: 'Storage limit reached.' });
 
     const fileType = file.mimetype.startsWith('video/') ? 'video'
       : file.mimetype.startsWith('image/') ? 'image'
@@ -151,6 +148,9 @@ exports.deleteFile = async (req, res) => {
 exports.getStorage = async (req, res) => {
   const limits = await getPlanLimits(req.user.plan);
   const used = Number(req.user.storage_used);
+  if (isUnlimited(limits.storage)) {
+    return res.json({ used, used_human: bytes(used), limit: null, limit_human: 'Unlimited', remaining: null, remaining_human: 'Unlimited', percent: null });
+  }
   res.json({
     used,
     used_human: bytes(used),

@@ -1,0 +1,17 @@
+<%
+// locals expected: active ('home'|'files'|'api'|'plans'), user
+%>
+<nav class="tabbar">
+  <a href="/" class="tab-item <%= active === 'home' ? 'active' : '' %>" data-path="/">
+    <i data-lucide="home"></i><span>Home</span>
+  </a>
+  <a href="<%= user ? '/dashboard' : '/login?next=/dashboard' %>" class="tab-item <%= active === 'files' ? 'active' : '' %>">
+    <i data-lucide="folder"></i><span>Files</span>
+  </a>
+  <a href="/api" class="tab-item <%= active === 'api' ? 'active' : '' %>" data-path="/api">
+    <i data-lucide="code-2"></i><span>API</span>
+  </a>
+  <a href="/plans" class="tab-item <%= active === 'plans' ? 'active' : '' %>" data-path="/plans">
+    <i data-lucide="credit-card"></i><span>Plans</span>
+  </a>
+</nav>

@@ -105,18 +105,21 @@ exports.changePlan = async (req, res) => {
 exports.updatePlan = async (req, res) => {
   try {
     const { name } = req.params;
-    const { display_name, price_ngn, storage_limit_gb, file_size_limit_gb, api_access, live_streaming } = req.body;
+    const { display_name, price_ngn, price_ngn_yearly, storage_limit_gb, file_size_limit_gb, max_api_apps, api_access, live_streaming } = req.body;
+    const unlimitedStorage = String(storage_limit_gb).trim() === '-1' || String(storage_limit_gb).trim().toLowerCase() === 'unlimited';
     await pool.query(`
       UPDATE plans SET
-        display_name=$1, price_ngn=$2,
-        storage_limit=$3, file_size_limit=$4,
-        api_access=$5, live_streaming=$6
-      WHERE name=$7
+        display_name=$1, price_ngn=$2, price_ngn_yearly=$3,
+        storage_limit=$4, file_size_limit=$5, max_api_apps=$6,
+        api_access=$7, live_streaming=$8
+      WHERE name=$9
     `, [
       display_name,
       parseInt(price_ngn),
-      Math.round(parseFloat(storage_limit_gb) * 1024 * 1024 * 1024),
+      parseInt(price_ngn_yearly) || 0,
+      unlimitedStorage ? -1 : Math.round(parseFloat(storage_limit_gb) * 1024 * 1024 * 1024),
       Math.round(parseFloat(file_size_limit_gb) * 1024 * 1024 * 1024),
+      parseInt(max_api_apps) || 0,
       api_access === 'true' || api_access === true,
       live_streaming === 'true' || live_streaming === true,
       name

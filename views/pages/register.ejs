@@ -2,47 +2,31 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Create Account — AlzCloud</title>
-  <meta name="description" content="Create a free AlzCloud account and start hosting files instantly. 500MB free storage, instant shareable links, no credit card required.">
+  <meta name="description" content="Create a free AlzCloud account. Unlimited total storage at 500MB per file, instant shareable links, no credit card required.">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://cloud.alz.name.ng/register">
-
-  <!-- Open Graph -->
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://cloud.alz.name.ng/register">
-  <meta property="og:site_name" content="AlzCloud">
-  <meta property="og:title" content="Create Your Free AlzCloud Account">
-  <meta property="og:description" content="Sign up free and start uploading files instantly. 500MB storage, shareable links, and no credit card required.">
-  <meta property="og:image" content="https://cloud.alz.name.ng/img/og-cover.png">
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Create Your Free AlzCloud Account">
-  <meta name="twitter:description" content="Sign up free and start uploading files instantly. 500MB storage, shareable links, no credit card required.">
-  <meta name="twitter:image" content="https://cloud.alz.name.ng/img/og-cover.png">
-
-  <!-- Favicon -->
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236c63ff' stroke-width='2'%3E%3Cpath d='M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z'/%3E%3C/svg%3E">
+  <meta name="csrf-token" content="<%= locals.csrfToken || '' %>">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d5afe' stroke-width='2'%3E%3Cpath d='M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/css/style.css">
 </head>
-<body class="auth-page">
-<nav>
-  <a href="/" class="logo"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg><span><%= appName %></span></a>
-  <div class="nav-links">
-    <a href="/plans">Pricing</a>
-    <a href="/login">Sign in</a>
+<body>
+<div class="app-shell">
+  <div class="topbar">
+    <a href="/" class="icon-btn"><i data-lucide="chevron-left"></i></a>
+    <a href="/login" class="btn btn-ghost btn-sm">Sign in</a>
   </div>
-</nav>
-<main class="auth-main">
-  <div style="width:100%;max-width:420px;">
-    <div class="card">
-      <h2 style="margin-bottom:.25rem">Create account</h2>
-      <p class="text-muted text-sm" style="margin-bottom:1.5rem">Start with 500MB free storage</p>
+  <main class="app-main no-nav">
+    <div class="auth-wrap">
+      <div class="auth-logo"><i data-lucide="cloud"></i><span><%= appName %></span></div>
+      <h1 class="auth-title">Create your account</h1>
+      <p class="auth-sub">Unlimited storage · 500MB per file, free</p>
+
       <% if (error) { %>
-        <div class="alert alert-error"><%= error %></div>
+        <div class="alert alert-error"><i data-lucide="alert-circle"></i><span><%= error %></span></div>
       <% } %>
+
       <form method="POST" action="/register">
         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
         <div class="form-group">
@@ -57,16 +41,13 @@
           <label class="form-label">Password</label>
           <input class="form-input" type="password" name="password" required placeholder="Min. 6 characters" minlength="6">
         </div>
-        <button type="submit" class="btn btn-primary btn-block" style="margin-top:.5rem">Create account</button>
+        <button type="submit" class="btn btn-primary btn-block">Create account</button>
       </form>
-      <p class="text-sm text-muted" style="margin-top:1.25rem;text-align:center">
-        Have an account? <a href="/login">Sign in</a>
-      </p>
+
+      <p class="auth-switch">Have an account? <a href="/login">Sign in</a></p>
     </div>
-  </div>
-</main>
-<footer>
-  <p>&copy; <%= new Date().getFullYear() %> <%= appName %> &middot; Powered by Alz-Tech</p>
-</footer>
+  </main>
+</div>
+<%- include('../partials/scripts') %>
 </body>
 </html>

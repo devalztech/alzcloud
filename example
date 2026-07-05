@@ -1,0 +1,35 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  AlzCloud v2 — Environment Variables
+#  Copy this to .env and fill in your values
+#  On Render, set these in the Environment tab
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── App ───────────────────────────────────────────────────────────────────────
+PORT=10000
+APP_NAME=AlzCloud
+APP_URL=https://your-app.onrender.com
+NODE_ENV=production
+SESSION_SECRET=replace_with_32_char_random_string
+
+# ── PostgreSQL ────────────────────────────────────────────────────────────────
+DATABASE_URL=postgresql://user:password@host:5432/alzcloud
+
+# ── Telegram Channel (where files are stored) ────────────────────────────────
+TELEGRAM_CHANNEL_ID=-1001234567890
+# Must start with -100. This is the channel the user account posts files to.
+# The logged-in Telegram account MUST be an admin of this channel.
+
+# ── Telegram MTProto Session ──────────────────────────────────────────────────
+TELEGRAM_API_ID=
+TELEGRAM_API_HASH=
+# Get this pair from https://my.telegram.org/apps — one app registration per
+# Telegram account. Keep secret, never commit.
+TELEGRAM_SESSION=
+# Run `npm run gen-session` locally to generate this string.
+# It authenticates as YOUR Telegram account (not a bot) → unlocks 2GB limit.
+# Keep this SECRET — treat it like a password.
+# Do NOT commit to git.
+
+# ── Paystack ──────────────────────────────────────────────────────────────────
+PAYSTACK_SECRET_KEY=sk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+PAYSTACK_PUBLIC_KEY=pk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

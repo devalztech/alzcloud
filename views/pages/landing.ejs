@@ -2,151 +2,115 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-  <!-- Primary SEO -->
-  <title>AlzCloud — Fast & Free File Hosting with Instant Share Links</title>
-  <meta name="description" content="Upload files, images, and videos and share them instantly with a clean public link. AlzCloud offers free cloud storage with 500MB free, up to 100GB on paid plans. No sign-up friction.">
-  <meta name="keywords" content="file hosting, cloud storage, file sharing, upload files online, free file host, share files, image hosting, video hosting, AlzCloud">
+  <title>AlzCloud — Upload & Share Instantly</title>
+  <meta name="description" content="Upload any file and get a shareable link instantly — no account needed for files up to 500MB. Register free for 2GB uploads and API access.">
+  <meta name="keywords" content="file hosting, upload files, share files online, free file host, image hosting, video hosting, AlzCloud">
   <meta name="author" content="Alz-Tech">
   <link rel="canonical" href="https://cloud.alz.name.ng/">
 
-  <!-- Open Graph (Facebook, WhatsApp, Telegram, Discord) -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://cloud.alz.name.ng/">
   <meta property="og:site_name" content="AlzCloud">
-  <meta property="og:title" content="AlzCloud — Fast & Free File Hosting">
-  <meta property="og:description" content="Upload once, share anywhere. Store files, images & videos with instant shareable links. Start free with 500MB — no credit card needed.">
+  <meta property="og:title" content="AlzCloud — Upload & Share Instantly">
+  <meta property="og:description" content="Tap, upload, share. No account needed for files up to 500MB. Register free for 2GB uploads and a developer API.">
   <meta property="og:image" content="https://cloud.alz.name.ng/img/og-cover.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="AlzCloud — Fast & Free File Hosting">
   <meta property="og:locale" content="en_US">
 
-  <!-- Twitter / X Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@AlzTech">
-  <meta name="twitter:title" content="AlzCloud — Fast & Free File Hosting">
-  <meta name="twitter:description" content="Upload once, share anywhere. Store files, images & videos with instant shareable links. Start free — no credit card needed.">
+  <meta name="twitter:title" content="AlzCloud — Upload & Share Instantly">
+  <meta name="twitter:description" content="Tap, upload, share. No account needed for files up to 500MB.">
   <meta name="twitter:image" content="https://cloud.alz.name.ng/img/og-cover.png">
-  <meta name="twitter:image:alt" content="AlzCloud — Fast & Free File Hosting">
 
-  <!-- Robots & Indexing -->
   <meta name="robots" content="index, follow">
-  <meta name="googlebot" content="index, follow">
+  <meta name="csrf-token" content="<%= locals.csrfToken || '' %>">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d5afe' stroke-width='2'%3E%3Cpath d='M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z'/%3E%3C/svg%3E">
 
-  <!-- Favicon -->
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236c63ff' stroke-width='2'%3E%3Cpath d='M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z'/%3E%3C/svg%3E">
-
-  <!-- Structured Data (Google Rich Results) -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "WebApplication",
     "name": "AlzCloud",
     "url": "https://cloud.alz.name.ng",
-    "description": "Fast, reliable file hosting with instant shareable links. Upload files, images and videos for free.",
+    "description": "Upload files, images and videos and get instant shareable links. Free for files up to 500MB, no account required.",
     "applicationCategory": "UtilitiesApplication",
     "operatingSystem": "Web",
     "offers": [
-      {
-        "@type": "Offer",
-        "name": "Free Plan",
-        "price": "0",
-        "priceCurrency": "NGN"
-      },
-      {
-        "@type": "Offer",
-        "name": "Starter Plan",
-        "price": "1000",
-        "priceCurrency": "NGN"
-      },
-      {
-        "@type": "Offer",
-        "name": "Pro Plan",
-        "price": "3000",
-        "priceCurrency": "NGN"
-      }
+      { "@type": "Offer", "name": "Free Plan", "price": "0", "priceCurrency": "NGN" },
+      { "@type": "Offer", "name": "Starter Plan", "price": "3000", "priceCurrency": "NGN" },
+      { "@type": "Offer", "name": "Pro Plan", "price": "5000", "priceCurrency": "NGN" }
     ],
-    "provider": {
-      "@type": "Organization",
-      "name": "Alz-Tech",
-      "url": "https://cloud.alz.name.ng"
-    }
+    "provider": { "@type": "Organization", "name": "Alz-Tech", "url": "https://cloud.alz.name.ng" }
   }
   </script>
 
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-
-<nav>
-  <a href="/" class="logo"><svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z'/></svg><span><%= appName %></span></a>
-  <div class="nav-links">
-    <a href="/plans">Pricing</a>
-    <% if (user) { %>
-      <a href="/dashboard">Dashboard</a>
-      <a href="/logout" class="btn btn-outline btn-sm">Sign out</a>
-    <% } else { %>
-      <a href="/login">Sign in</a>
-      <a href="/register" class="btn btn-primary btn-sm">Get started</a>
-    <% } %>
-  </div>
-</nav>
-
-<div class="container">
-  <div class="hero">
-    <div class="hero-badge">Fast &amp; Reliable Cloud Storage</div>
-    <h1>Store files, images &amp; videos<br><span class="accent">without limits</span></h1>
-    <p>Upload once, share anywhere. AlzCloud gives you fast, reliable file hosting with instant shareable links.</p>
-    <div class="hero-actions">
-      <a href="/register" class="btn btn-primary">Start free &rarr;</a>
-      <a href="/plans" class="btn btn-outline">View pricing</a>
+<div class="app-shell">
+  <div class="topbar">
+    <a href="/" class="logo"><i data-lucide="cloud"></i><span><%= appName %></span></a>
+    <div class="topbar-action">
+      <% if (user) { %>
+        <a href="/dashboard" class="btn btn-outline btn-sm">Dashboard</a>
+      <% } else { %>
+        <a href="/login" class="btn btn-ghost btn-sm">Sign in</a>
+        <a href="/register" class="btn btn-primary btn-sm">Register</a>
+      <% } %>
     </div>
   </div>
 
-  <div class="stats-grid" style="max-width:700px;margin:0 auto 4rem;">
-    <div class="stat-card" style="text-align:center">
-      <div class="stat-val">100GB</div>
-      <div class="stat-label">Max storage (Business)</div>
-    </div>
-    <div class="stat-card" style="text-align:center">
-      <div class="stat-val">2GB</div>
-      <div class="stat-label">Max file size (Business)</div>
-    </div>
-    <div class="stat-card" style="text-align:center">
-      <div class="stat-val">Free</div>
-      <div class="stat-label">To get started</div>
-    </div>
-  </div>
+  <main class="app-main">
+    <div class="upload-stage">
+      <div id="upload-zone" class="upload-zone" data-endpoint="/upload/anonymous" data-max-bytes="<%= anonMaxBytes %>">
+        <svg class="progress-ring" viewBox="0 0 100 100" width="100%" height="100%">
+          <circle class="track" cx="50" cy="50" r="44"></circle>
+          <circle class="fill" cx="50" cy="50" r="44"></circle>
+        </svg>
+        <i class="upload-ring-icon" data-lucide="upload-cloud"></i>
+        <div class="upload-label">Tap to upload</div>
+        <div class="upload-sub">Any file, up to 500MB</div>
+      </div>
+      <input type="file" id="file-input" style="display:none">
 
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:4rem;">
-    <div class="card">
-      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:.75rem;color:var(--accent2)"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-      <h3 style="margin-bottom:.4rem">Any file type</h3>
-      <p class="text-muted text-sm">Documents, images, videos, audio — upload anything and we handle the rest.</p>
+      <div class="filetype-chips">
+        <div class="filetype-chip"><i data-lucide="image"></i>Image</div>
+        <div class="filetype-chip"><i data-lucide="video"></i>Video</div>
+        <div class="filetype-chip"><i data-lucide="music"></i>Audio</div>
+        <div class="filetype-chip"><i data-lucide="file-text"></i>Docs</div>
+        <div class="filetype-chip"><i data-lucide="package"></i>Any file</div>
+      </div>
     </div>
-    <div class="card">
-      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:.75rem;color:var(--accent2)"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-      <h3 style="margin-bottom:.4rem">Instant public links</h3>
-      <p class="text-muted text-sm">Every upload gets a clean shareable URL. No waiting, no verification needed.</p>
+
+    <div id="upload-result"></div>
+
+    <div class="section">
+      <div class="card" style="background:linear-gradient(150deg,var(--brand-tint),var(--violet-tint));border:none">
+        <div class="flex items-center gap-2 mb-2">
+          <i data-lucide="sparkles" style="color:var(--violet)"></i>
+          <strong style="font-family:'Space Grotesk',sans-serif">Want more room?</strong>
+        </div>
+        <ul class="plan-features" style="margin-bottom:16px">
+          <li><i data-lucide="check"></i> Register free — keep every upload in one place</li>
+          <li><i data-lucide="check"></i> Upload up to 2GB per file on Starter or Pro</li>
+          <li><i data-lucide="check"></i> Get a developer API to upload from your own app</li>
+        </ul>
+        <div class="flex gap-2">
+          <a href="/register" class="btn btn-primary w-full">Create free account</a>
+        </div>
+        <a href="/plans" class="auth-switch" style="display:block">See all plans →</a>
+      </div>
     </div>
-    <div class="card">
-      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:.75rem;color:var(--accent2)"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      <h3 style="margin-bottom:.4rem">Download stats</h3>
-      <p class="text-muted text-sm">Track how many times your files have been downloaded from your dashboard.</p>
-    </div>
-    <div class="card">
-      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:.75rem;color:var(--accent2)"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      <h3 style="margin-bottom:.4rem">Your files, your control</h3>
-      <p class="text-muted text-sm">Delete files at any time. Storage is tracked per account with plan limits.</p>
-    </div>
-  </div>
+
+    <p class="mini-footer">&copy; <%= new Date().getFullYear() %> <%= appName %> · Powered by Alz-Tech</p>
+  </main>
+
+  <%- include('../partials/tabbar', { active: 'home', user }) %>
 </div>
-
-<footer>
-  <p>&copy; <%= new Date().getFullYear() %> <%= appName %> &middot; Powered by Alz-Tech</p>
-</footer>
-
+<%- include('../partials/scripts') %>
 </body>
 </html>

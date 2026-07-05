@@ -2,182 +2,120 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- Primary SEO -->
-  <title>Pricing Plans — AlzCloud File Hosting</title>
-  <meta name="description" content="Simple, affordable pricing. Start free with 500MB storage. Upgrade to Starter (₦1,000/mo) or Pro (₦3,000/mo) for up to 100GB storage, API access, and live streaming.">
-  <meta name="keywords" content="AlzCloud pricing, file hosting plans, cloud storage pricing, cheap file hosting Nigeria">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Pricing Plans — AlzCloud</title>
+  <meta name="description" content="Simple pricing. Free unlimited storage at 500MB per file. Starter ₦3,000/mo for 1GB uploads + API. Pro ₦5,000/mo for 2GB uploads + more API apps.">
   <link rel="canonical" href="https://cloud.alz.name.ng/plans">
   <meta name="robots" content="index, follow">
-
-  <!-- Open Graph -->
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://cloud.alz.name.ng/plans">
-  <meta property="og:site_name" content="AlzCloud">
-  <meta property="og:title" content="AlzCloud Pricing — Affordable File Hosting Plans">
-  <meta property="og:description" content="Free, Starter & Pro plans. Start with 500MB free. Upgrade anytime for more storage, API access & live streaming.">
-  <meta property="og:image" content="https://cloud.alz.name.ng/img/og-cover.png">
-  <meta property="og:image:alt" content="AlzCloud Pricing Plans">
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="AlzCloud Pricing — Affordable File Hosting Plans">
-  <meta name="twitter:description" content="Free, Starter & Pro plans. Start with 500MB free. Upgrade anytime for more storage, API access & live streaming.">
-  <meta name="twitter:image" content="https://cloud.alz.name.ng/img/og-cover.png">
-
-  <!-- Favicon -->
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236c63ff' stroke-width='2'%3E%3Cpath d='M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z'/%3E%3C/svg%3E">
+  <meta name="csrf-token" content="<%= locals.csrfToken || '' %>">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d5afe' stroke-width='2'%3E%3Cpath d='M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/css/style.css">
   <style>
-    .pricing-hero { text-align:center; padding: 3.5rem 0 2.5rem; }
-    .pricing-hero h1 { font-size: clamp(1.8rem,4vw,2.8rem); font-weight:700; margin-bottom:.75rem; }
-    .pricing-hero p { color: var(--muted); font-size:.95rem; }
-    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem; }
-    .plan-card {
-      background: var(--bg2); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 2rem; position: relative;
-      transition: border-color .2s, box-shadow .2s;
-    }
-    .plan-card:hover { border-color: var(--accent); box-shadow: 0 0 30px var(--accent-glow); }
-    .plan-card.featured { border-color: var(--accent); box-shadow: 0 0 24px var(--accent-glow); }
-    .plan-badge {
-      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
-      background: var(--accent); color: #fff; font-size: .72rem; font-weight: 700;
-      padding: .2rem .85rem; border-radius: 99px; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap;
-    }
-    .plan-name { font-weight: 600; font-size: .9rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .75rem; }
-    .plan-price { font-size: 2.2rem; font-weight: 700; color: var(--text); line-height: 1; margin-bottom: 1.5rem; }
-    .plan-price span { font-size: .9rem; font-weight: 400; color: var(--muted); }
-    .plan-features { list-style: none; margin-bottom: 1.75rem; display: flex; flex-direction: column; gap: .6rem; }
-    .plan-features li { display: flex; align-items: center; gap: .6rem; font-size: .875rem; color: var(--muted); }
-    .plan-features li svg { flex-shrink: 0; color: var(--green); width: 14px; height: 14px; }
-    .plan-features li.disabled svg { color: var(--muted); opacity: .4; }
-    .plan-features li.disabled { opacity: .55; }
-
-    .faq { max-width: 680px; margin: 0 auto 3rem; }
-    .faq h2 { text-align:center; font-size:1.4rem; margin-bottom:1.5rem; }
-    .faq-item { border-bottom: 1px solid var(--border); padding: 1rem 0; }
-    .faq-q { font-weight: 500; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: .9rem; }
-    .faq-q svg { width: 16px; height: 16px; color: var(--muted); transition: transform .2s; }
-    .faq-item.open .faq-q svg { transform: rotate(180deg); }
-    .faq-a { font-size: .875rem; color: var(--muted); margin-top: .6rem; display: none; line-height: 1.7; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 14px 0; }
+    .faq-q { font-weight: 600; font-size: .86rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .faq-q i { width: 16px; height: 16px; color: var(--muted); transition: transform .2s; }
+    .faq-item.open .faq-q i { transform: rotate(180deg); }
+    .faq-a { font-size: .82rem; color: var(--muted); margin-top: 8px; display: none; line-height: 1.6; }
     .faq-item.open .faq-a { display: block; }
   </style>
 </head>
 <body>
-<nav>
-  <a href="/" class="logo">
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
-    <span><%= appName %></span>
-  </a>
-  <div class="nav-links">
-    <a href="/plans">Pricing</a>
-    <% if (locals.user) { %>
-      <a href="/dashboard">Dashboard</a>
-      <a href="/logout" class="btn btn-outline btn-sm">Sign out</a>
-    <% } else { %>
-      <a href="/login">Sign in</a>
-      <a href="/register" class="btn btn-primary btn-sm">Get started</a>
-    <% } %>
-  </div>
-</nav>
-
-<div class="container">
-  <% if (locals.queryError) { %>
-  <div class="alert alert-error" style="margin-top:1.5rem">
-    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    Payment failed or was cancelled. Please try again.
-  </div>
-  <% } %>
-
-  <div class="pricing-hero">
-    <h1>Simple, honest pricing</h1>
-    <p>Choose the plan that fits you. Upgrade or downgrade anytime.</p>
+<div class="app-shell">
+  <div class="topbar">
+    <a href="/" class="logo"><i data-lucide="cloud"></i><span><%= appName %></span></a>
+    <% if (locals.user) { %><a href="/dashboard" class="btn btn-outline btn-sm">Dashboard</a>
+    <% } else { %><a href="/register" class="btn btn-primary btn-sm">Get started</a><% } %>
   </div>
 
-  <div class="pricing-grid">
-    <% plans.forEach(function(plan) {
-      var featured = plan.name === 'starter';
-      var isCurrentPlan = locals.user && locals.user.plan === plan.name;
-      var features = [];
-      try { features = JSON.parse(plan.features || '[]'); } catch(e) { features = []; }
-    %>
-    <div class="plan-card <%= featured ? 'featured' : '' %>">
-      <% if (featured) { %><div class="plan-badge">Most Popular</div><% } %>
-      <div class="plan-name"><%= plan.display_name %></div>
-      <div class="plan-price">
-        <% if (plan.price_ngn === 0) { %>Free<% } else { %>&#8358;<%= plan.price_ngn.toLocaleString() %><span>/month</span><% } %>
-      </div>
-      <ul class="plan-features">
-        <% features.forEach(function(f) {
-          var disabled = f.toLowerCase().startsWith('no ');
-        %>
-        <li class="<%= disabled ? 'disabled' : '' %>">
-          <% if (!disabled) { %>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          <% } else { %>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          <% } %>
-          <%= f %>
-        </li>
-        <% }); %>
-      </ul>
-      <% if (isCurrentPlan) { %>
-        <div class="btn btn-outline btn-block" style="cursor:default;justify-content:center">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-          Current Plan
-        </div>
-      <% } else if (plan.price_ngn === 0) { %>
-        <a href="/register" class="btn btn-outline btn-block">Get started free</a>
-      <% } else if (locals.user) { %>
-        <a href="/billing/upgrade/<%= plan.name %>" class="btn btn-primary btn-block">Upgrade to <%= plan.display_name %></a>
-      <% } else { %>
-        <a href="/register" class="btn btn-primary btn-block">Get started</a>
+  <main class="app-main">
+    <div class="section text-center" style="padding-bottom:0">
+      <h1 style="font-size:1.5rem">Simple, honest pricing</h1>
+      <p class="text-muted text-sm mt-1">Upgrade or downgrade anytime.</p>
+
+      <% if (locals.queryError) { %>
+        <div class="alert alert-error mt-2"><i data-lucide="alert-circle"></i><span>Payment failed or was cancelled. Please try again.</span></div>
       <% } %>
-    </div>
-    <% }); %>
-  </div>
 
-  <div class="faq">
-    <h2>Frequently asked questions</h2>
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)">
-        What counts as storage?
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      <div class="cycle-toggle" id="cycle-toggle">
+        <button class="active" data-cycle="monthly">Monthly</button>
+        <button data-cycle="yearly">Yearly <span class="cycle-save">save ~30%</span></button>
       </div>
-      <div class="faq-a">Every file you upload counts toward your storage limit. Deleted files free up space immediately.</div>
     </div>
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)">
-        What is API access?
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+
+    <div class="section" style="padding-top:0">
+      <% plans.forEach(function(plan) {
+        var featured = plan.name === 'starter';
+        var isCurrentPlan = locals.user && locals.user.plan === plan.name;
+        var features = [];
+        try { features = JSON.parse(plan.features || '[]'); } catch(e) { features = []; }
+      %>
+      <div class="plan-card <%= featured ? 'featured' : '' %>">
+        <% if (featured) { %><div class="plan-badge">Most Popular</div><% } %>
+        <div class="plan-name"><%= plan.display_name %></div>
+        <% if (plan.price_ngn === 0) { %>
+          <div class="plan-price">Free</div>
+          <div class="plan-sub">Forever</div>
+        <% } else { %>
+          <div class="plan-price" data-monthly="&#8358;<%= Number(plan.price_ngn).toLocaleString() %>" data-yearly="&#8358;<%= Number(plan.price_ngn_yearly).toLocaleString() %>">&#8358;<%= Number(plan.price_ngn).toLocaleString() %><span class="price-period">/month</span></div>
+          <div class="plan-sub price-sub">Billed monthly</div>
+        <% } %>
+        <ul class="plan-features">
+          <% features.forEach(function(f) { %>
+          <li><i data-lucide="check"></i><%= f %></li>
+          <% }); %>
+        </ul>
+        <% if (isCurrentPlan) { %>
+          <div class="btn btn-outline btn-block" style="cursor:default"><i data-lucide="check"></i> Current plan</div>
+        <% } else if (plan.price_ngn === 0) { %>
+          <a href="/register" class="btn btn-outline btn-block">Get started free</a>
+        <% } else if (locals.user) { %>
+          <a href="/billing/upgrade/<%= plan.name %>/monthly" class="btn <%= featured ? 'btn-primary' : 'btn-outline' %> btn-block upgrade-link" data-monthly-href="/billing/upgrade/<%= plan.name %>/monthly" data-yearly-href="/billing/upgrade/<%= plan.name %>/yearly">Upgrade to <%= plan.display_name %></a>
+        <% } else { %>
+          <a href="/register" class="btn <%= featured ? 'btn-primary' : 'btn-outline' %> btn-block">Get started</a>
+        <% } %>
       </div>
-      <div class="faq-a">Starter and Pro plans include an API key you can use to upload, list, and delete files from your own apps or websites. See the <a href="/api">API docs</a>.</div>
+      <% }); %>
     </div>
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)">
-        What is live streaming and iframe embed?
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+
+    <div class="section">
+      <div class="section-title">FAQ</div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">What counts toward storage?<i data-lucide="chevron-down"></i></div>
+        <div class="faq-a">Every file you upload counts toward your storage limit. Free has no total storage cap, just a 500MB-per-file limit. Deleting a file frees up space immediately.</div>
       </div>
-      <div class="faq-a">Paid plans can stream videos directly in your browser and embed them in any website using an iframe — great for embedding media in your own apps.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)">
-        How are payments handled?
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">What's an API app?<i data-lucide="chevron-down"></i></div>
+        <div class="faq-a">Starter and Pro can create named API apps, each with its own key, to upload and manage files from your own software. Starter gets 5 new apps/month, Pro gets 10. See the <a href="/api">API docs</a>.</div>
       </div>
-      <div class="faq-a">All payments are processed securely via Paystack. We accept card, bank transfer, and USSD in Nigeria.</div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">What happens when my plan expires?<i data-lucide="chevron-down"></i></div>
+        <div class="faq-a">Your API apps stop working until you renew, but you can still upload manually from the dashboard at Free-tier limits — nothing you've already uploaded is deleted.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">How do payments work?<i data-lucide="chevron-down"></i></div>
+        <div class="faq-a">All payments are processed securely via Paystack — card, bank transfer, or USSD.</div>
+      </div>
     </div>
-  </div>
+    <p class="mini-footer">&copy; <%= new Date().getFullYear() %> <%= appName %></p>
+  </main>
+
+  <%- include('../partials/tabbar', { active: 'plans', user: locals.user }) %>
 </div>
-
-<footer>
-  <p>&copy; <%= new Date().getFullYear() %> <%= appName %> &middot; Powered by Alz-Tech</p>
-</footer>
-
+<%- include('../partials/scripts') %>
 <script>
 function toggleFaq(el) { el.closest('.faq-item').classList.toggle('open'); }
+document.getElementById('cycle-toggle')?.addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const cycle = btn.dataset.cycle;
+  document.querySelectorAll('#cycle-toggle button').forEach(b => b.classList.toggle('active', b === btn));
+  document.querySelectorAll('.plan-price[data-monthly]').forEach(el => {
+    el.querySelector('.price-period').outerHTML = cycle === 'yearly' ? '<span class="price-period">/year</span>' : '<span class="price-period">/month</span>';
+    el.childNodes[0].textContent = cycle === 'yearly' ? el.dataset.yearly : el.dataset.monthly;
+  });
+  document.querySelectorAll('.price-sub').forEach(el => { el.textContent = cycle === 'yearly' ? 'Billed yearly' : 'Billed monthly'; });
+  document.querySelectorAll('.upgrade-link').forEach(el => { el.href = cycle === 'yearly' ? el.dataset.yearlyHref : el.dataset.monthlyHref; });
+});
 </script>
 </body>
 </html>
