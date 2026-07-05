@@ -62,6 +62,7 @@
               </div>
               <button class="icon-btn danger" data-delete-app="<%= app.id %>" data-name="<%= app.name %>"><i data-lucide="trash-2"></i></button>
             </div>
+            <div class="text-sm text-muted mt-1">Files from this app: <code><%= appUrl %>/api/<%= user.username %>/<%= app.app_slug %>/…</code></div>
             <div class="app-key-row">
               <code><%= app.api_key %></code>
               <button class="icon-btn" data-copy-key="<%= app.api_key %>"><i data-lucide="copy"></i></button>

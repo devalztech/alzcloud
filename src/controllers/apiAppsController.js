@@ -7,12 +7,13 @@
 const crypto = require('crypto');
 const { pool } = require('../../config/db');
 const { getPlanLimits } = require('../utils/plans');
+const { slugifyAppName, uniqueSuffix } = require('../utils/urls');
 
 exports.page = async (req, res) => {
   try {
     const limits = await getPlanLimits(req.user.plan);
     const { rows: apps } = await pool.query(
-      'SELECT id, name, api_key, revoked, created_at FROM api_apps WHERE user_id=$1 ORDER BY created_at DESC',
+      'SELECT id, name, app_slug, api_key, revoked, created_at FROM api_apps WHERE user_id=$1 ORDER BY created_at DESC',
       [req.user.id]
     );
     const { rows: countRows } = await pool.query(
@@ -34,7 +35,7 @@ exports.page = async (req, res) => {
 exports.list = async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT id, name, api_key, revoked, created_at FROM api_apps WHERE user_id=$1 ORDER BY created_at DESC',
+      'SELECT id, name, app_slug, api_key, revoked, created_at FROM api_apps WHERE user_id=$1 ORDER BY created_at DESC',
       [req.user.id]
     );
     res.json({ apps: rows });
@@ -63,9 +64,18 @@ exports.create = async (req, res) => {
     }
 
     const apiKey = crypto.randomBytes(24).toString('hex');
+    let appSlug = slugifyAppName(name);
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const { rows: clash } = await pool.query(
+        'SELECT id FROM api_apps WHERE user_id=$1 AND app_slug=$2', [req.user.id, appSlug]
+      );
+      if (clash.length === 0) break;
+      appSlug = `${slugifyAppName(name)}-${uniqueSuffix()}`;
+    }
+
     const { rows } = await pool.query(
-      'INSERT INTO api_apps (user_id, name, api_key) VALUES ($1,$2,$3) RETURNING id, name, api_key, revoked, created_at',
-      [req.user.id, name, apiKey]
+      'INSERT INTO api_apps (user_id, name, app_slug, api_key) VALUES ($1,$2,$3,$4) RETURNING id, name, app_slug, api_key, revoked, created_at',
+      [req.user.id, name, appSlug, apiKey]
     );
     res.status(201).json({ success: true, app: rows[0] });
   } catch (e) {

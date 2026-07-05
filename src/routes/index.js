@@ -10,7 +10,9 @@ const { streamFileToResponse } = require('../utils/telegram');
 const { pool } = require('../../config/db');
 const { rateLimit } = require('../middleware/rateLimit');
 const { verifyCsrfToken } = require('../middleware/csrf');
+const { verifyOrigin, blockScriptedAuth } = require('../middleware/security');
 const { ANON_FILE_SIZE_LIMIT } = require('../utils/plans');
+const { buildFileUrl } = require('../utils/urls');
 
 // Reserved path segment for logged-out uploads — see resolveFile() below.
 const ANON_NS = 'anon';
@@ -23,6 +25,17 @@ const loginLimiter = rateLimit({
   keyFn: req => 'login:' + req.ip,
   onLimit: (req, res) => res.status(429).render('pages/login', {
     title: 'Sign In', error: 'Too many attempts. Please wait a few minutes and try again.',
+    next: req.body.next || req.query.next || '/dashboard'
+  })
+});
+// Second layer keyed by the submitted email rather than IP — stops
+// credential-stuffing against one account spread across many source IPs,
+// which a purely IP-based limiter can't catch.
+const loginEmailLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 6,
+  keyFn: req => 'login-email:' + String(req.body.email || '').toLowerCase().trim(),
+  onLimit: (req, res) => res.status(429).render('pages/login', {
+    title: 'Sign In', error: 'Too many attempts for this account. Please wait a few minutes and try again.',
     next: req.body.next || req.query.next || '/dashboard'
   })
 });
@@ -65,9 +78,9 @@ module.exports = function(adminSlug) {
   router.get('/', (req, res) => res.render('pages/landing', { title: 'AlzCloud — Upload & Share', anonMaxBytes: ANON_FILE_SIZE_LIMIT }));
   router.post('/upload/anonymous', anonUploadLimiter, file.anonymousUpload);
   router.get('/register', auth.getRegister);
-  router.post('/register', registerLimiter, verifyCsrfToken, auth.postRegister);
+  router.post('/register', registerLimiter, blockScriptedAuth, verifyOrigin, verifyCsrfToken, auth.postRegister);
   router.get('/login', auth.getLogin);
-  router.post('/login', loginLimiter, verifyCsrfToken, auth.postLogin);
+  router.post('/login', loginLimiter, loginEmailLimiter, blockScriptedAuth, verifyOrigin, verifyCsrfToken, auth.postLogin);
   router.get('/logout', auth.logout);
   router.get('/plans', billing.getPlans);
   router.get('/f/:slug', file.viewFile);
@@ -76,7 +89,10 @@ module.exports = function(adminSlug) {
   router.get('/embed/:slug', async (req, res) => {
     try {
       const { rows } = await pool.query(
-        'SELECT f.*, u.plan, u.username FROM files f JOIN users u ON f.user_id=u.id WHERE f.slug=$1',
+        `SELECT f.*, u.plan, u.username, a.app_slug
+         FROM files f JOIN users u ON f.user_id=u.id
+         LEFT JOIN api_apps a ON f.api_app_id = a.id
+         WHERE f.slug=$1`,
         [req.params.slug]
       );
       if (!rows[0]) return res.status(404).send('File not found');
@@ -86,71 +102,90 @@ module.exports = function(adminSlug) {
       if (!planR.rows[0]?.live_streaming) {
         return res.status(403).send('<html><body style="background:#000;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><p>Live streaming requires Starter or Pro plan.</p></body></html>');
       }
-      res.render('pages/embed', { file: f, previewUrl: `/preview/${f.username}/${f.slug}` });
+      res.render('pages/embed', { file: f, previewUrl: buildFileUrl(f, f.username, f.app_slug) });
     } catch (e) {
       res.status(500).send('Error loading embed');
     }
   });
 
-  // Look up a file by owner username + slug. Namespaced so one developer's
-  // files can never be enumerated or guessed via another developer's URLs,
-  // and so the internal Telegram message_id is never exposed publicly.
-  // The reserved "anon" namespace covers logged-out uploads (user_id IS NULL).
-  async function resolveFile(username, slug) {
+  // Look up a file by owner username + slug for the manual/anonymous
+  // ("free") channel. Namespaced so files can't be enumerated across users,
+  // and excludes API-uploaded files — those live under /api/... only, so
+  // every file has exactly one canonical URL. The reserved "anon" namespace
+  // covers logged-out uploads (user_id IS NULL).
+  async function resolveFreeFile(username, fileId) {
     if (username.toLowerCase() === ANON_NS) {
-      const { rows } = await pool.query('SELECT * FROM files WHERE user_id IS NULL AND slug=$1', [slug]);
+      const { rows } = await pool.query('SELECT * FROM files WHERE user_id IS NULL AND slug=$1', [fileId]);
       return rows[0] || null;
     }
     const { rows } = await pool.query(
       `SELECT f.* FROM files f JOIN users u ON f.user_id = u.id
-       WHERE u.username = $1 AND f.slug = $2`,
-      [username.toLowerCase(), slug]
+       WHERE u.username = $1 AND f.slug = $2 AND f.api_app_id IS NULL`,
+      [username.toLowerCase(), fileId]
     );
     return rows[0] || null;
   }
 
-  // File streaming routes — /dl/:username/:slug (namespaced, public files only)
-  router.get('/dl/:username/:slug', streamLimiter, async (req, res) => {
+  // Same idea for the API channel — also verifies the file belongs to the
+  // NAMED app, not just the user, so one app's files can't be reached
+  // through another app's URL even for the same account.
+  async function resolveApiFile(username, appSlug, fileId) {
+    const { rows } = await pool.query(
+      `SELECT f.* FROM files f
+       JOIN api_apps a ON f.api_app_id = a.id
+       JOIN users u ON a.user_id = u.id
+       WHERE u.username = $1 AND a.app_slug = $2 AND f.slug = $3`,
+      [username.toLowerCase(), appSlug, fileId]
+    );
+    return rows[0] || null;
+  }
+
+  // Manual + anonymous upload channel: /free/:username/:fileId/:filename
+  // The filename segment is cosmetic (correct download filename in the
+  // browser, readable URL) — lookup always uses fileId, mismatches ignored.
+  router.get('/free/:username/:fileId/:filename', streamLimiter, async (req, res) => {
     try {
-      const file = await resolveFile(req.params.username, req.params.slug);
-      if (!file || !file.is_public) return res.status(404).send('File not found');
-      await pool.query('UPDATE files SET downloads=downloads+1 WHERE id=$1', [file.id]);
-      await streamFileToResponse(file.message_id, res);
+      const fileRow = await resolveFreeFile(req.params.username, req.params.fileId);
+      if (!fileRow || !fileRow.is_public) return res.status(404).send('File not found');
+      await pool.query('UPDATE files SET downloads=downloads+1 WHERE id=$1', [fileRow.id]);
+      await streamFileToResponse(fileRow.message_id, res);
     } catch (e) {
       console.error('Stream error:', e.message);
       if (!res.headersSent) res.status(500).send('Could not stream file: ' + e.message);
     }
   });
 
-  router.get('/preview/:username/:slug', streamLimiter, async (req, res) => {
+  // API upload channel: /api/:username/:appname/:fileId/:filename
+  router.get('/api/:username/:appname/:fileId/:filename', streamLimiter, async (req, res) => {
     try {
-      const file = await resolveFile(req.params.username, req.params.slug);
-      if (!file || !file.is_public) return res.status(404).send('File not found');
-      await streamFileToResponse(file.message_id, res);
+      const fileRow = await resolveApiFile(req.params.username, req.params.appname, req.params.fileId);
+      if (!fileRow || !fileRow.is_public) return res.status(404).send('File not found');
+      await pool.query('UPDATE files SET downloads=downloads+1 WHERE id=$1', [fileRow.id]);
+      await streamFileToResponse(fileRow.message_id, res);
     } catch (e) {
-      console.error('Preview stream error:', e.message);
-      if (!res.headersSent) res.status(500).send('Could not preview file: ' + e.message);
+      console.error('Stream error:', e.message);
+      if (!res.headersSent) res.status(500).send('Could not stream file: ' + e.message);
     }
   });
 
   // ── Protected (user) ────────────────────────────────────────────────────────
   router.get('/dashboard', requireAuth, file.getDashboard);
-  router.post('/upload', requireAuth, uploadLimiter, verifyCsrfToken, file.uploadFile);
-  router.delete('/files/:id', requireAuth, verifyCsrfToken, file.deleteFile);
+  router.post('/upload', requireAuth, uploadLimiter, verifyOrigin, verifyCsrfToken, file.uploadFile);
+  router.delete('/files/:id', requireAuth, verifyOrigin, verifyCsrfToken, file.deleteFile);
   router.get('/billing/upgrade/:plan/:cycle', requireAuth, billing.initiate);
   router.get('/billing/verify', billing.verify);
 
   // My API apps (named keys) — session-authenticated dashboard management.
   router.get('/dashboard/apps', requireAuth, apiApps.page);
-  router.post('/apps', requireAuth, verifyCsrfToken, apiApps.create);
-  router.delete('/apps/:id', requireAuth, verifyCsrfToken, apiApps.remove);
+  router.post('/apps', requireAuth, verifyOrigin, verifyCsrfToken, apiApps.create);
+  router.delete('/apps/:id', requireAuth, verifyOrigin, verifyCsrfToken, apiApps.remove);
 
   // ── Admin (dynamic slug) ────────────────────────────────────────────────────
   router.get(`/${adminSlug}`, requireAdmin, admin.getDashboard);
   router.get(`/${adminSlug}/users`, requireAdmin, admin.getUsers);
-  router.delete(`/${adminSlug}/users/:id`, requireAdmin, verifyCsrfToken, admin.deleteUser);
-  router.post(`/${adminSlug}/users/:id/plan`, requireAdmin, verifyCsrfToken, admin.changePlan);
-  router.post(`/${adminSlug}/plans/:name`, requireAdmin, verifyCsrfToken, admin.updatePlan);
+  router.delete(`/${adminSlug}/users/:id`, requireAdmin, verifyOrigin, verifyCsrfToken, admin.deleteUser);
+  router.post(`/${adminSlug}/users/:id/plan`, requireAdmin, verifyOrigin, verifyCsrfToken, admin.changePlan);
+  router.post(`/${adminSlug}/plans/:name`, requireAdmin, verifyOrigin, verifyCsrfToken, admin.updatePlan);
   router.get(`/${adminSlug}/stats`, requireAdmin, admin.getLiveStats);
 
   // Redirect /admin → 404 (security: don't reveal the real path)
@@ -166,6 +201,7 @@ module.exports = function(adminSlug) {
   router.get('/api/v1/files', requireApiKey, api.listFiles);
   router.get('/api/v1/files/:slug', requireApiKey, api.getFile);
   router.post('/api/v1/upload', requireApiKey, uploadLimiter, api.uploadFile);
+  router.patch('/api/v1/files/:slug', requireApiKey, api.updateFile);
   router.delete('/api/v1/files/:slug', requireApiKey, api.deleteFile);
 
   // API docs (public)

@@ -12,6 +12,26 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
+// Session-theft guard: binds a session to the User-Agent seen at login. A
+// cookie replayed from a wildly different client (different browser/OS
+// entirely) gets the session dropped rather than honored. Not foolproof —
+// UA is attacker-controllable in principle — but it raises the bar against
+// casual cookie theft/replay for near-zero cost, and never blocks a normal
+// user on their own device.
+const sessionGuard = (req, res, next) => {
+  if (req.session.userId) {
+    const currentUa = req.headers['user-agent'] || '';
+    if (req.session.ua && req.session.ua !== currentUa) {
+      return req.session.destroy(() => {
+        res.clearCookie('connect.sid');
+        res.redirect('/login?next=' + encodeURIComponent(req.originalUrl));
+      });
+    }
+    if (!req.session.ua) req.session.ua = currentUa;
+  }
+  next();
+};
+
 const loadUser = async (req, res, next) => {
   if (req.session.userId) {
     const { pool } = require('../../config/db');
@@ -36,7 +56,7 @@ const requireApiKey = async (req, res, next) => {
   const { pool } = require('../../config/db');
   try {
     const r = await pool.query(
-      `SELECT u.id, u.username, u.email, u.plan, u.storage_used, a.id AS api_app_id, a.name AS api_app_name
+      `SELECT u.id, u.username, u.email, u.plan, u.storage_used, a.id AS api_app_id, a.name AS api_app_name, a.app_slug AS api_app_slug
        FROM api_apps a JOIN users u ON a.user_id = u.id
        WHERE a.api_key=$1 AND a.revoked=false`,
       [key]
@@ -50,7 +70,7 @@ const requireApiKey = async (req, res, next) => {
       return res.status(403).json({ error: 'API access is not available on your plan. Upgrade to Starter or Pro.' });
     }
     req.user = user;
-    req.apiApp = { id: user.api_app_id, name: user.api_app_name };
+    req.apiApp = { id: user.api_app_id, name: user.api_app_name, slug: user.api_app_slug };
     // Log API usage
     pool.query('INSERT INTO api_logs (user_id, endpoint, method) VALUES ($1,$2,$3)', [user.id, req.path, req.method]).catch(() => {});
     next();
@@ -59,4 +79,4 @@ const requireApiKey = async (req, res, next) => {
   }
 };
 
-module.exports = { requireAuth, requireAdmin, loadUser, requireApiKey };
+module.exports = { requireAuth, requireAdmin, loadUser, requireApiKey, sessionGuard };

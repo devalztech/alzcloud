@@ -6,16 +6,30 @@ const fileUpload = require('express-fileupload');
 const path = require('path');
 const crypto = require('crypto');
 const { initDB, pool } = require('../config/db');
-const { loadUser } = require('./middleware/auth');
+const { loadUser, sessionGuard } = require('./middleware/auth');
 const { attachCsrfToken } = require('./middleware/csrf');
+const { securityHeaders, requireUserAgent } = require('./middleware/security');
 const { downgradeExpiredSubscriptions } = require('./utils/subscriptions');
 const routes = require('./routes/index');
 
 const app = express();
 
+if (!process.env.SESSION_SECRET) {
+  throw new Error('SESSION_SECRET must be set in the environment — refusing to boot with a predictable fallback secret.');
+}
+
 app.set('trust proxy', 1);
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '../views'));
+
+// Dedicated health check — deliberately registered before any security
+// middleware below, so Render's health checker (whose exact headers aren't
+// publicly documented) is never at risk of being blocked by the bot/header
+// hardening applied to real pages. render.yaml points healthCheckPath here.
+app.get('/healthz', (req, res) => res.status(200).send('OK'));
+
+app.use(securityHeaders);
+app.use(requireUserAgent);
 app.use(express.static(path.join(__dirname, '../public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -33,7 +47,7 @@ app.use(session({
     tableName: 'sessions',
     createTableIfMissing: true
   }),
-  secret: process.env.SESSION_SECRET || 'alzcloud_secret',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -44,6 +58,7 @@ app.use(session({
   }
 }));
 
+app.use(sessionGuard);
 app.use(loadUser);
 app.use(attachCsrfToken);
 
