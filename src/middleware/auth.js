@@ -71,8 +71,17 @@ const requireApiKey = async (req, res, next) => {
     }
     req.user = user;
     req.apiApp = { id: user.api_app_id, name: user.api_app_name, slug: user.api_app_slug };
-    // Log API usage
-    pool.query('INSERT INTO api_logs (user_id, endpoint, method) VALUES ($1,$2,$3)', [user.id, req.path, req.method]).catch(() => {});
+
+    // Log API usage — written once the response actually finishes, so the
+    // real status code is captured (not just "request arrived"). Scoped to
+    // this app (api_app_id), which is what GET /api/v1/usage reads back.
+    res.on('finish', () => {
+      pool.query(
+        'INSERT INTO api_logs (user_id, api_app_id, endpoint, method, status_code) VALUES ($1,$2,$3,$4,$5)',
+        [user.id, user.api_app_id, req.path, req.method, res.statusCode]
+      ).catch(() => {});
+    });
+
     next();
   } catch (e) {
     res.status(500).json({ error: 'Auth failed.' });

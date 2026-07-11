@@ -13,7 +13,7 @@ exports.page = async (req, res) => {
   try {
     const limits = await getPlanLimits(req.user.plan);
     const { rows: apps } = await pool.query(
-      'SELECT id, name, app_slug, api_key, revoked, created_at FROM api_apps WHERE user_id=$1 ORDER BY created_at DESC',
+      'SELECT id, name, app_slug, api_key, revoked, created_at, last_rotated_at FROM api_apps WHERE user_id=$1 ORDER BY created_at DESC',
       [req.user.id]
     );
     const { rows: countRows } = await pool.query(
@@ -35,7 +35,7 @@ exports.page = async (req, res) => {
 exports.list = async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT id, name, app_slug, api_key, revoked, created_at FROM api_apps WHERE user_id=$1 ORDER BY created_at DESC',
+      'SELECT id, name, app_slug, api_key, revoked, created_at, last_rotated_at FROM api_apps WHERE user_id=$1 ORDER BY created_at DESC',
       [req.user.id]
     );
     res.json({ apps: rows });
@@ -92,5 +92,43 @@ exports.remove = async (req, res) => {
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: 'Could not delete API app.' });
+  }
+};
+
+// POST /apps/:id/rotate — regenerate the key without deleting the app or its
+// files/webhooks. Use this when a key may have leaked; the old key stops
+// working the instant this returns.
+exports.rotate = async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT id FROM api_apps WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
+    if (!rows[0]) return res.status(404).json({ error: 'API app not found.' });
+
+    const newKey = crypto.randomBytes(24).toString('hex');
+    const { rows: updated } = await pool.query(
+      'UPDATE api_apps SET api_key=$1, last_rotated_at=NOW() WHERE id=$2 RETURNING id, name, app_slug, api_key, revoked, created_at, last_rotated_at',
+      [newKey, req.params.id]
+    );
+    res.json({ success: true, app: updated[0] });
+  } catch (e) {
+    console.error('Rotate API key error:', e);
+    res.status(500).json({ error: 'Could not rotate API key.' });
+  }
+};
+
+// PATCH /apps/:id — { revoked: true|false } — pause/resume a key without
+// losing the app's file history (unlike delete, which orphans its files).
+exports.update = async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT id FROM api_apps WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
+    if (!rows[0]) return res.status(404).json({ error: 'API app not found.' });
+    if (typeof req.body.revoked !== 'boolean') return res.status(400).json({ error: 'Provide "revoked": true or false.' });
+
+    const { rows: updated } = await pool.query(
+      'UPDATE api_apps SET revoked=$1 WHERE id=$2 RETURNING id, name, app_slug, api_key, revoked, created_at, last_rotated_at',
+      [req.body.revoked, req.params.id]
+    );
+    res.json({ success: true, app: updated[0] });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not update API app.' });
   }
 };

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>API Documentation — AlzCloud</title>
-  <meta name="description" content="AlzCloud REST API docs. Create named API apps and upload, list, and delete files programmatically.">
+  <meta name="description" content="AlzCloud REST API docs. Upload, list, embed, stream and delete files programmatically, plus webhooks and named API apps.">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://cloud.alz.name.ng/api">
   <meta name="csrf-token" content="<%= locals.csrfToken || '' %>">
@@ -20,6 +20,7 @@
     .method { font-size: .68rem; font-weight: 700; padding: 3px 8px; border-radius: 5px; font-family: 'JetBrains Mono', monospace; }
     .method-get { background: var(--success-tint); color: var(--success); }
     .method-post { background: var(--brand-tint); color: var(--brand-dark); }
+    .method-patch { background: var(--warning-tint); color: var(--warning); }
     .method-delete { background: var(--danger-tint); color: var(--danger); }
     .endpoint-path { font-family: 'JetBrains Mono', monospace; font-size: .78rem; }
     .endpoint-desc { font-size: .74rem; color: var(--muted-2); width: 100%; }
@@ -42,9 +43,9 @@
   <main class="app-main">
     <div class="section" style="padding-bottom:0">
       <h1 style="font-size:1.35rem">AlzCloud API</h1>
-      <p class="text-sm text-muted mb-2">Programmatic file storage — available on <strong>Starter</strong> and <strong>Pro</strong>. Manage keys under <a href="/dashboard/apps">My Apps</a>.</p>
+      <p class="text-sm text-muted mb-2">Programmatic file storage — upload, download, embed and stream, available on <strong>Starter</strong> and <strong>Pro</strong>. Manage keys under <a href="/dashboard/apps">My Apps</a>.</p>
       <div class="jump-row">
-        <a href="#auth">Auth</a><a href="#errors">Errors</a><a href="#me">Account</a><a href="#storage">Storage</a><a href="#list">List</a><a href="#upload">Upload</a><a href="#update">Update</a><a href="#delete">Delete</a>
+        <a href="#auth">Auth</a><a href="#errors">Errors</a><a href="#status">Status</a><a href="#me">Account</a><a href="#usage">Usage</a><a href="#storage">Storage</a><a href="#list">List</a><a href="#upload">Upload</a><a href="#update">Update</a><a href="#delete">Delete</a><a href="#batch-delete">Batch delete</a><a href="#embed">Embed &amp; sizes</a><a href="#webhooks">Webhooks</a><a href="#apps">Managing apps</a><a href="#cors">CORS</a>
       </div>
     </div>
 
@@ -54,21 +55,31 @@
       <h2 class="api-h2" id="auth">Authentication</h2>
       <p class="text-sm text-muted mb-1">Each API app you create has its own key. Pass it as a header:</p>
       <pre><code>X-API-Key: your_app_key</code></pre>
-      <p class="text-sm text-muted mb-1">Or as a query param (less secure):</p>
+      <p class="text-sm text-muted mb-1">Or as a query param (less secure, useful for quick testing in a browser):</p>
       <pre><code>GET /api/v1/files?api_key=your_app_key</code></pre>
+      <p class="text-sm text-muted mb-1">Files, storage and webhooks are all scoped to the calling app's key — one app never sees another app's data, even on the same account.</p>
 
       <h2 class="api-h2" id="errors">Error codes</h2>
       <table class="param-table">
         <thead><tr><th>Code</th><th>Meaning</th></tr></thead>
         <tbody>
           <tr><td class="param-name">401</td><td>Missing, invalid, or revoked API key</td></tr>
-          <tr><td class="param-name">403</td><td>API access not on your plan, or app quota reached</td></tr>
-          <tr><td class="param-name">404</td><td>File not found</td></tr>
+          <tr><td class="param-name">403</td><td>API access not on your plan, or a quota reached</td></tr>
+          <tr><td class="param-name">404</td><td>File / webhook / app not found</td></tr>
           <tr><td class="param-name">400</td><td>Bad request (missing fields, file too large)</td></tr>
-          <tr><td class="param-name">429</td><td>Rate limited — slow down</td></tr>
+          <tr><td class="param-name">415</td><td>File type can't be embedded</td></tr>
+          <tr><td class="param-name">429</td><td>Rate limited — slow down (300 requests / 15 min per key)</td></tr>
           <tr><td class="param-name">500</td><td>Server error — try again later</td></tr>
         </tbody>
       </table>
+
+      <h2 class="api-h2" id="status">Status</h2>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="endpoint-path">/api/v1/status</span><span class="endpoint-desc">Public, no auth — health/version check</span></div>
+        <div class="endpoint-body">
+          <pre><code>{ "status": "ok", "version": "v1", "time": "2026-07-11T12:00:00.000Z" }</code></pre>
+        </div>
+      </div>
 
       <h2 class="api-h2" id="me">Account info</h2>
       <div class="endpoint">
@@ -87,7 +98,24 @@
         </div>
       </div>
 
+      <h2 class="api-h2" id="usage">API usage (this app)</h2>
+      <p class="text-sm text-muted mb-1">Call volume for the key you're using — separate from account storage. Useful for watching your own rate-limit headroom.</p>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="endpoint-path">/api/v1/usage</span><span class="endpoint-desc">Requests in the last 15m / 24h / this month</span></div>
+        <div class="endpoint-body">
+          <pre><code>{
+  "api_app": "My Mobile App",
+  "requests_last_15m": 12,
+  "rate_limit_window": "15m",
+  "rate_limit_max": 300,
+  "requests_last_24h": 340,
+  "requests_this_month": 5210
+}</code></pre>
+        </div>
+      </div>
+
       <h2 class="api-h2" id="storage">Storage usage</h2>
+      <p class="text-sm text-muted mb-1">Account-level — shared across every app you own plus the dashboard.</p>
       <div class="endpoint">
         <div class="endpoint-header"><span class="method method-get">GET</span><span class="endpoint-path">/api/v1/storage</span><span class="endpoint-desc">Storage breakdown</span></div>
         <div class="endpoint-body">
@@ -122,11 +150,14 @@
     "file_type": "video",
     "is_public": true,
     "url": "<%= appUrl %>/f/abc123def456",
-    "download_url": "<%= appUrl %>/api/your_username/your-app-name/abc123def456/video.mp4",
-    "embed_url": "<%= appUrl %>/embed/abc123def456"
+    "download_url": "<%= appUrl %>/api/you/your-app/abc123def456/video.mp4?download=1",
+    "stream_url": "<%= appUrl %>/api/you/your-app/abc123def456/video.mp4",
+    "embed_url": "<%= appUrl %>/embed/abc123def456",
+    "embed_code": "&lt;iframe src=\"<%= appUrl %>/embed/abc123def456\" width=\"100%\" height=\"360\" frameborder=\"0\" allowfullscreen&gt;&lt;/iframe&gt;"
   }],
   "total": 42, "limit": 20, "offset": 0
 }</code></pre>
+          <p class="text-sm text-muted">Every file response already includes a ready-to-paste <code>embed_code</code> — copy it straight into a page, no extra assembly needed. See <a href="#embed">Embed &amp; sizes</a> below.</p>
         </div>
       </div>
 
@@ -137,20 +168,25 @@
           <pre><code>curl -X POST <%= appUrl %>/api/v1/upload \
   -H "X-API-Key: your_app_key" \
   -F "file=@/path/to/video.mp4"</code></pre>
-          <pre><code>const form = new FormData();
+          <pre><code>// Works directly from browser JS too — CORS is open on /api/v1,
+// so a visitor's browser can upload straight to AlzCloud without
+// round-tripping through your own backend.
+const form = new FormData();
 form.append('file', fileBlob, 'myfile.mp4');
 const res = await fetch('<%= appUrl %>/api/v1/upload', {
   method: 'POST',
   headers: { 'X-API-Key': 'your_app_key' },
   body: form,
-});</code></pre>
+});
+const data = await res.json();
+// data.embed_code is ready to insert into the page right away</code></pre>
         </div>
       </div>
 
       <h2 class="api-h2" id="update">Update file</h2>
       <p class="text-sm text-muted mb-1">Rename a file and/or toggle its public visibility. Send only the fields you want to change.</p>
       <div class="endpoint">
-        <div class="endpoint-header"><span class="method method-post" style="background:var(--warning-tint);color:var(--warning)">PATCH</span><span class="endpoint-path">/api/v1/files/:slug</span><span class="endpoint-desc"></span></div>
+        <div class="endpoint-header"><span class="method method-patch">PATCH</span><span class="endpoint-path">/api/v1/files/:slug</span><span class="endpoint-desc"></span></div>
         <div class="endpoint-body">
           <pre><code>curl -X PATCH <%= appUrl %>/api/v1/files/abc123def456 \
   -H "X-API-Key: your_app_key" \
@@ -167,6 +203,103 @@ const res = await fetch('<%= appUrl %>/api/v1/upload', {
   -H "X-API-Key: your_app_key"</code></pre>
         </div>
       </div>
+
+      <h2 class="api-h2" id="batch-delete">Batch delete</h2>
+      <p class="text-sm text-muted mb-1">Delete up to 100 files in one call. Partial failures don't abort the batch — check <code>failed</code> in the response.</p>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-delete">DELETE</span><span class="endpoint-path">/api/v1/files</span><span class="endpoint-desc">Body: { "slugs": [...] }</span></div>
+        <div class="endpoint-body">
+          <pre><code>curl -X DELETE <%= appUrl %>/api/v1/files \
+  -H "X-API-Key: your_app_key" \
+  -H "Content-Type: application/json" \
+  -d '{"slugs": ["abc123def456", "xyz789"]}'</code></pre>
+          <pre><code>{ "success": true, "deleted": ["abc123def456"], "failed": [{"slug":"xyz789","error":"not found"}], "deleted_count": 1, "failed_count": 1 }</code></pre>
+        </div>
+      </div>
+
+      <h2 class="api-h2" id="embed">Embed, iframe &amp; image sizes</h2>
+      <p class="text-sm text-muted mb-1">Every uploaded video, image, audio file, or PDF gets an <code>embed_url</code> that renders a clean, responsive player — drop it straight into any site with an iframe. No plan restriction beyond having API access at all (video, image, audio and PDF all just work).</p>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="endpoint-path">/embed/:slug</span><span class="endpoint-desc">Renders an iframe-ready player for the file</span></div>
+        <div class="endpoint-body">
+          <pre><code>&lt;iframe
+  src="<%= appUrl %>/embed/abc123def456"
+  width="100%" height="360"
+  frameborder="0"
+  allow="autoplay; fullscreen; encrypted-media"
+  allowfullscreen&gt;
+&lt;/iframe&gt;</code></pre>
+          <table class="param-table">
+            <thead><tr><th>Query param</th><th>Applies to</th><th>Effect</th></tr></thead>
+            <tbody>
+              <tr><td class="param-name">autoplay=0</td><td>video, audio</td><td>Disable autoplay (on by default)</td></tr>
+              <tr><td class="param-name">muted=1</td><td>video</td><td>Start muted — pair with autoplay for browsers that block unmuted autoplay</td></tr>
+              <tr><td class="param-name">loop=1</td><td>video, audio</td><td>Loop playback</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p class="text-sm text-muted mb-1">Video is streamed with full HTTP Range support, so seeking/scrubbing works properly and mobile browsers play it without buffering the whole file first — this is real progressive streaming, not a full-file download disguised as one.</p>
+      <p class="text-sm text-muted mb-1"><strong>Image size variants</strong> — append <code>?size=</code> to any image's stream URL to get a smaller Telegram-generated variant instead of the original, useful for thumbnails/avatars without running your own resizing pipeline:</p>
+      <pre><code><%= appUrl %>/api/you/your-app/abc123/photo.jpg?size=small
+<%= appUrl %>/api/you/your-app/abc123/photo.jpg?size=medium
+<%= appUrl %>/api/you/your-app/abc123/photo.jpg?size=large
+<%= appUrl %>/api/you/your-app/abc123/photo.jpg              (original, default)</code></pre>
+      <p class="text-sm text-muted mb-1">The same file JSON also includes a <code>sizes</code> object with all four URLs pre-built, so you never have to construct these by hand:</p>
+      <pre><code>"sizes": {
+  "small": ".../photo.jpg?size=small",
+  "medium": ".../photo.jpg?size=medium",
+  "large": ".../photo.jpg?size=large",
+  "original": ".../photo.jpg"
+}</code></pre>
+      <p class="text-sm text-muted mb-1"><strong>Forcing a download</strong> — add <code>?download=1</code> to any stream URL to send <code>Content-Disposition: attachment</code> instead of rendering inline. This is what <code>download_url</code> in every file response already points to, so a plain <code>&lt;a href="download_url"&gt;Download&lt;/a&gt;</code> just works, cross-site, without relying on the browser's <code>download</code> attribute.</p>
+
+      <h2 class="api-h2" id="webhooks">Webhooks</h2>
+      <p class="text-sm text-muted mb-1">Get notified the instant a file is uploaded or deleted instead of polling <code>GET /files</code>. Registered per app, authenticated with the same API key — no dashboard login needed.</p>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-post">POST</span><span class="endpoint-path">/api/v1/webhooks</span><span class="endpoint-desc">Body: { url, events? }</span></div>
+        <div class="endpoint-body">
+          <pre><code>curl -X POST <%= appUrl %>/api/v1/webhooks \
+  -H "X-API-Key: your_app_key" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://yoursite.com/hooks/alzcloud", "events": ["file.uploaded","file.deleted"]}'</code></pre>
+          <pre><code>{
+  "success": true, "id": 4, "url": "https://yoursite.com/hooks/alzcloud",
+  "events": ["file.uploaded","file.deleted"], "active": true,
+  "secret": "9f2c...  ← shown once, save it now"
+}</code></pre>
+          <p class="text-sm text-muted">Max 10 webhooks per app. The <code>secret</code> is only ever returned in this create response — it's used to verify deliveries below.</p>
+        </div>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-get">GET</span><span class="endpoint-path">/api/v1/webhooks</span><span class="endpoint-desc">List your webhooks (no secrets returned)</span></div>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header"><span class="method method-delete">DELETE</span><span class="endpoint-path">/api/v1/webhooks/:id</span><span class="endpoint-desc"></span></div>
+      </div>
+      <p class="text-sm text-muted mb-1">Each delivery is a signed POST:</p>
+      <pre><code>POST https://yoursite.com/hooks/alzcloud
+X-AlzCloud-Event: file.uploaded
+X-AlzCloud-Signature: hmac-sha256(secret, raw_body)
+
+{ "event": "file.uploaded", "data": { ...file object... }, "sent_at": "..." }</code></pre>
+      <p class="text-sm text-muted mb-1">Verify it came from AlzCloud by recomputing the HMAC-SHA256 of the raw request body with your webhook secret and comparing to the header. Delivery is fire-and-forget with a 5s timeout — a slow endpoint on your side never blocks or fails the upload/delete request that triggered it.</p>
+
+      <h2 class="api-h2" id="apps">Managing apps (keys)</h2>
+      <p class="text-sm text-muted mb-1">Creating/deleting apps and rotating or pausing keys are dashboard actions (session login), not part of the public API — a key can't be used to regenerate itself. Do these from <a href="/dashboard/apps">My Apps</a>, or the equivalent authenticated requests:</p>
+      <table class="param-table">
+        <thead><tr><th>Action</th><th>Route</th></tr></thead>
+        <tbody>
+          <tr><td>Create app</td><td class="param-name">POST /apps</td></tr>
+          <tr><td>Delete app</td><td class="param-name">DELETE /apps/:id</td></tr>
+          <tr><td>Rotate key</td><td class="param-name">POST /apps/:id/rotate</td></tr>
+          <tr><td>Pause / activate</td><td class="param-name">PATCH /apps/:id — { "revoked": true|false }</td></tr>
+        </tbody>
+      </table>
+      <p class="text-sm text-muted mb-1">Pausing (revoke) keeps the app and its files intact and instantly blocks the key — use it the moment you suspect a leak, then rotate once you've updated wherever the key is used. Deleting an app removes it permanently and orphans its files.</p>
+
+      <h2 class="api-h2" id="cors">CORS</h2>
+      <p class="text-sm text-muted mb-1">The entire <code>/api/v1/*</code> surface, plus every file stream/embed URL, sends open CORS headers (<code>Access-Control-Allow-Origin: *</code>). You can call this API directly from client-side JavaScript on your own site — uploads, listing, deletes — without a server in between. Keep in mind that means anyone who can view your page's source can see whatever API key you embed in it; for public-facing upload widgets, consider a thin server-side proxy that injects the key instead of shipping it to the browser.</p>
     </div>
     <p class="mini-footer">&copy; <%= new Date().getFullYear() %> <%= appName %></p>
   </main>

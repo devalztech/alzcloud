@@ -8,17 +8,28 @@
  * ever sees and manages files it uploaded itself. Storage usage/limits
  * remain account-level since that's the billing unit shared across every
  * app and the dashboard.
+ *
+ * Every file response includes ready-to-use embed/iframe/download URLs so
+ * an integrator can drop a file straight into their site without needing
+ * to hand-build any of these — that's the whole point of the "embed_code"
+ * and "sizes" fields below.
  */
 const fs = require('fs');
 const { pool } = require('../../config/db');
 const { uploadFile, deleteMessage } = require('../utils/telegram');
+const { fireWebhookEvent } = require('../utils/webhooks');
 const { v4: uuidv4 } = require('uuid');
 const bytes = require('bytes');
 const { getPlanLimits, isUnlimited } = require('../utils/plans');
-const { buildFileUrl } = require('../utils/urls');
+const { buildFileUrl, buildSizedUrl, buildDownloadUrl, buildEmbedUrl, buildEmbedCode } = require('../utils/urls');
 
 function serializeFile(f, username, appSlug) {
-  return {
+  const appUrl = process.env.APP_URL || '';
+  const streamUrl = `${appUrl}${buildFileUrl(f, username, appSlug)}`;
+  const isImage = f.file_type === 'image';
+  const isEmbeddable = ['video', 'image', 'audio'].includes(f.file_type) || f.mime_type === 'application/pdf';
+
+  const out = {
     id: f.id,
     name: f.original_name,
     slug: f.slug,
@@ -29,11 +40,34 @@ function serializeFile(f, username, appSlug) {
     downloads: f.downloads,
     is_public: f.is_public,
     created_at: f.created_at,
-    url: `${process.env.APP_URL}/f/${f.slug}`,
-    download_url: `${process.env.APP_URL}${buildFileUrl(f, username, appSlug)}`,
-    embed_url: `${process.env.APP_URL}/embed/${f.slug}`,
+    url: `${appUrl}/f/${f.slug}`,
+    download_url: buildDownloadUrl(streamUrl),
+    stream_url: streamUrl,
   };
+
+  if (isEmbeddable) {
+    out.embed_url = buildEmbedUrl(appUrl, f.slug);
+    out.embed_code = buildEmbedCode(appUrl, f.slug);
+  }
+
+  // Image size variants — served straight off Telegram's own generated
+  // sizes, so this needs no local resizing/image-processing dependency.
+  if (isImage) {
+    out.sizes = {
+      small: buildSizedUrl(streamUrl, 'small'),
+      medium: buildSizedUrl(streamUrl, 'medium'),
+      large: buildSizedUrl(streamUrl, 'large'),
+      original: streamUrl,
+    };
+  }
+
+  return out;
 }
+
+// GET /api/v1/status — public, unauthenticated health/version check
+exports.getStatus = async (req, res) => {
+  res.json({ status: 'ok', version: 'v1', time: new Date().toISOString() });
+};
 
 // GET /api/v1/me
 exports.getMe = async (req, res) => {
@@ -42,14 +76,37 @@ exports.getMe = async (req, res) => {
   res.json({
     id: req.user.id,
     username: req.user.username,
-    email: req.user.email,
     plan: req.user.plan,
     api_app: req.apiApp?.name || null,
+    api_app_slug: req.apiApp?.slug || null,
     storage_used: req.user.storage_used,
     storage_used_human: bytes(Number(req.user.storage_used)),
     storage_limit: unlimited ? null : limits.storage,
     storage_limit_human: unlimited ? 'Unlimited' : bytes(limits.storage),
   });
+};
+
+// GET /api/v1/usage — THIS app's request volume + rate-limit context.
+// Distinct from /storage (account-wide bytes): this is call volume, scoped
+// to the calling key, so an integrator can watch their own throttling state.
+exports.getUsage = async (req, res) => {
+  try {
+    const [last15m, last24h, thisMonth] = await Promise.all([
+      pool.query(`SELECT COUNT(*) FROM api_logs WHERE api_app_id=$1 AND created_at >= NOW() - INTERVAL '15 minutes'`, [req.apiApp.id]),
+      pool.query(`SELECT COUNT(*) FROM api_logs WHERE api_app_id=$1 AND created_at >= NOW() - INTERVAL '24 hours'`, [req.apiApp.id]),
+      pool.query(`SELECT COUNT(*) FROM api_logs WHERE api_app_id=$1 AND created_at >= date_trunc('month', NOW())`, [req.apiApp.id]),
+    ]);
+    res.json({
+      api_app: req.apiApp.name,
+      requests_last_15m: parseInt(last15m.rows[0].count),
+      rate_limit_window: '15m',
+      rate_limit_max: 300,
+      requests_last_24h: parseInt(last24h.rows[0].count),
+      requests_this_month: parseInt(thisMonth.rows[0].count),
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load usage.' });
+  }
 };
 
 // GET /api/v1/files — files uploaded by THIS app's key only
@@ -115,7 +172,9 @@ exports.uploadFile = async (req, res) => {
     );
     await pool.query('UPDATE users SET storage_used = storage_used + $1 WHERE id=$2', [file.size, req.user.id]);
 
-    res.status(201).json({ success: true, ...serializeFile(rows[0], req.user.username, req.apiApp.slug) });
+    const serialized = serializeFile(rows[0], req.user.username, req.apiApp.slug);
+    fireWebhookEvent(req.apiApp.id, 'file.uploaded', serialized);
+    res.status(201).json({ success: true, ...serialized });
   } catch (e) {
     console.error('API Upload error:', e);
     res.status(500).json({ error: 'Upload failed: ' + e.message });
@@ -160,10 +219,37 @@ exports.deleteFile = async (req, res) => {
     await deleteMessage(file.message_id);
     await pool.query('UPDATE users SET storage_used = GREATEST(0, storage_used - $1) WHERE id=$2', [file.size, req.user.id]);
     await pool.query('DELETE FROM files WHERE id=$1', [file.id]);
+    fireWebhookEvent(req.apiApp.id, 'file.deleted', { slug: file.slug, name: file.original_name });
     res.json({ success: true, message: 'File deleted.' });
   } catch (e) {
     res.status(500).json({ error: 'Delete failed.' });
   }
+};
+
+// DELETE /api/v1/files — batch delete: { "slugs": ["a","b","c"] }
+// Best-effort: partial failures don't abort the batch, they're reported back.
+exports.deleteFiles = async (req, res) => {
+  const slugs = Array.isArray(req.body.slugs) ? req.body.slugs.slice(0, 100) : null;
+  if (!slugs || slugs.length === 0) return res.status(400).json({ error: 'Provide a "slugs" array (max 100 per request).' });
+
+  const deleted = [];
+  const failed = [];
+  for (const slug of slugs) {
+    try {
+      const { rows } = await pool.query('SELECT * FROM files WHERE slug=$1 AND api_app_id=$2', [slug, req.apiApp.id]);
+      if (!rows[0]) { failed.push({ slug, error: 'not found' }); continue; }
+      const file = rows[0];
+      await deleteMessage(file.message_id);
+      await pool.query('UPDATE users SET storage_used = GREATEST(0, storage_used - $1) WHERE id=$2', [file.size, req.user.id]);
+      await pool.query('DELETE FROM files WHERE id=$1', [file.id]);
+      deleted.push(slug);
+    } catch (e) {
+      failed.push({ slug, error: 'delete failed' });
+    }
+  }
+
+  if (deleted.length) fireWebhookEvent(req.apiApp.id, 'file.deleted', { slugs: deleted });
+  res.json({ success: true, deleted, failed, deleted_count: deleted.length, failed_count: failed.length });
 };
 
 // GET /api/v1/storage — account-level (shared across every app + dashboard)
@@ -183,3 +269,5 @@ exports.getStorage = async (req, res) => {
     percent: Math.round((used / limits.storage) * 100),
   });
 };
+
+module.exports.serializeFile = serializeFile;

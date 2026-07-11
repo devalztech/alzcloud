@@ -51,13 +51,18 @@
         </div>
       <% } else { %>
         <% apps.forEach(app => { %>
-          <div class="app-card">
+          <div class="app-card" style="<%= app.revoked ? 'opacity:.6' : '' %>">
             <div class="flex justify-between items-center">
               <div class="flex items-center gap-2">
                 <div class="file-icon" style="background:var(--brand-tint);color:var(--brand)"><i data-lucide="key"></i></div>
                 <div>
-                  <div style="font-weight:700;font-size:.9rem"><%= app.name %></div>
-                  <div class="text-sm text-muted">Created <%= new Date(app.created_at).toLocaleDateString() %></div>
+                  <div style="font-weight:700;font-size:.9rem"><%= app.name %>
+                    <% if (app.revoked) { %><span class="badge" style="background:#ef444422;color:#ef4444;font-size:.65rem;margin-left:4px">REVOKED</span><% } %>
+                  </div>
+                  <div class="text-sm text-muted">
+                    Created <%= new Date(app.created_at).toLocaleDateString() %>
+                    <% if (app.last_rotated_at) { %> &middot; Key rotated <%= new Date(app.last_rotated_at).toLocaleDateString() %><% } %>
+                  </div>
                 </div>
               </div>
               <button class="icon-btn danger" data-delete-app="<%= app.id %>" data-name="<%= app.name %>"><i data-lucide="trash-2"></i></button>
@@ -66,6 +71,14 @@
             <div class="app-key-row">
               <code><%= app.api_key %></code>
               <button class="icon-btn" data-copy-key="<%= app.api_key %>"><i data-lucide="copy"></i></button>
+            </div>
+            <div class="flex gap-1 mt-1">
+              <button class="btn btn-outline btn-sm" style="flex:1" data-rotate-app="<%= app.id %>" data-name="<%= app.name %>"><i data-lucide="refresh-cw"></i> Rotate key</button>
+              <% if (app.revoked) { %>
+                <button class="btn btn-outline btn-sm" style="flex:1" data-toggle-revoke="<%= app.id %>" data-revoked="false"><i data-lucide="play"></i> Activate</button>
+              <% } else { %>
+                <button class="btn btn-outline btn-sm" style="flex:1" data-toggle-revoke="<%= app.id %>" data-revoked="true"><i data-lucide="pause"></i> Pause</button>
+              <% } %>
             </div>
           </div>
         <% }) %>
