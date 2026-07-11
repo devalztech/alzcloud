@@ -60,7 +60,7 @@ exports.create = async (req, res) => {
     );
     res.status(201).json({ success: true, ...serializeWebhook(rows[0]), secret });
   } catch (e) {
-    console.error('Create webhook error:', e);
+    console.error('Create webhook error:', e.message, e.stack);
     res.status(500).json({ error: 'Could not create webhook.' });
   }
 };

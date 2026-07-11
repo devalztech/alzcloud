@@ -211,7 +211,7 @@ module.exports = function(adminSlug) {
       await handleStream(req, res, fileRow);
     } catch (e) {
       console.error('Stream error:', e.message);
-      if (!res.headersSent) res.status(500).send('Could not stream file: ' + e.message);
+      if (!res.headersSent) res.status(500).send('Could not stream file. Please try again.');
     }
   });
 
@@ -222,7 +222,7 @@ module.exports = function(adminSlug) {
       await handleStream(req, res, fileRow);
     } catch (e) {
       console.error('Stream error:', e.message);
-      if (!res.headersSent) res.status(500).send('Could not stream file: ' + e.message);
+      if (!res.headersSent) res.status(500).send('Could not stream file. Please try again.');
     }
   });
 

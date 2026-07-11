@@ -82,14 +82,13 @@ const PORT = process.env.PORT || 10000;
 initDB().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`AlzCloud running on port ${PORT}`);
-    console.log(`Admin path: /${ADMIN_SLUG}`);
     console.log(`ENV: ${process.env.NODE_ENV || 'development'}`);
   });
 
   // Revert lapsed subscriptions to the free plan — once on boot, then hourly.
   // Render keeps this as a persistent process, so no external cron is needed.
-  downgradeExpiredSubscriptions().catch(e => console.error('Subscription downgrade check failed:', e));
+  downgradeExpiredSubscriptions().catch(e => console.error('Subscription downgrade check failed:', e.message, e.stack));
   setInterval(() => {
-    downgradeExpiredSubscriptions().catch(e => console.error('Subscription downgrade check failed:', e));
+    downgradeExpiredSubscriptions().catch(e => console.error('Subscription downgrade check failed:', e.message, e.stack));
   }, 60 * 60 * 1000).unref();
-}).catch(e => { console.error('DB init failed:', e); process.exit(1); });
+}).catch(e => { console.error('DB init failed:', e.message, e.stack); process.exit(1); });
