@@ -30,4 +30,31 @@ function buildFileUrl(file, username, appSlug) {
   return `/free/${encodeURIComponent(username || 'anon')}/${file.slug}/${safeName}`;
 }
 
-module.exports = { slugifyAppName, uniqueSuffix, buildFileUrl };
+// Direct stream URL with an optional Telegram-native size variant appended
+// (images only — see streamFileToResponse). Passing null/undefined size
+// omits the query param entirely and serves the original.
+function buildSizedUrl(baseUrl, size) {
+  if (!size || size === 'original') return baseUrl;
+  return `${baseUrl}?size=${encodeURIComponent(size)}`;
+}
+
+// A forced-download variant of the same stream URL (Content-Disposition:
+// attachment instead of inline) — for "Download" buttons on embedder sites
+// that can't rely on the cross-origin quirks of the HTML <a download> attribute.
+function buildDownloadUrl(baseUrl) {
+  return baseUrl.includes('?') ? `${baseUrl}&download=1` : `${baseUrl}?download=1`;
+}
+
+function buildEmbedUrl(appUrl, slug) {
+  return `${appUrl}/embed/${slug}`;
+}
+
+// Ready-to-paste <iframe> snippet — this is the whole point of "embed
+// without hassle": the API hands back working HTML, not just a URL.
+function buildEmbedCode(appUrl, slug, opts = {}) {
+  const width = opts.width || '100%';
+  const height = opts.height || 360;
+  return `<iframe src="${buildEmbedUrl(appUrl, slug)}" width="${width}" height="${height}" frameborder="0" allow="autoplay; fullscreen; encrypted-media" allowfullscreen></iframe>`;
+}
+
+module.exports = { slugifyAppName, uniqueSuffix, buildFileUrl, buildSizedUrl, buildDownloadUrl, buildEmbedUrl, buildEmbedCode };

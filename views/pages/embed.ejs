@@ -6,13 +6,77 @@
   <title><%= file.original_name %></title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; background: #000; }
-    video { width: 100%; height: 100vh; object-fit: contain; display: block; }
+    html, body {
+      height: 100%;
+      background: #000;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
+    .frame {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    video, img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    embed, iframe.doc {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #fff;
+    }
+    /* Audio gets a dark card instead of stretching a bare native player
+       across the whole iframe — most audio embeds are a fixed short strip. */
+    .audio-card {
+      width: 100%;
+      max-width: 480px;
+      padding: 20px;
+      background: linear-gradient(160deg, #1a1a2e, #16213e);
+      border-radius: 12px;
+      color: #fff;
+    }
+    .audio-card p {
+      font-size: 13px;
+      opacity: 0.7;
+      margin-bottom: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    audio { width: 100%; }
   </style>
 </head>
 <body>
-  <video controls autoplay preload="metadata" src="<%= previewUrl %>">
-    Your browser does not support video playback.
-  </video>
+  <div class="frame">
+    <% if (file.file_type === 'video') { %>
+      <video
+        controls
+        <% if (autoplay) { %>autoplay<% } %>
+        <% if (muted) { %>muted<% } %>
+        <% if (loop) { %>loop<% } %>
+        playsinline
+        preload="metadata"
+        src="<%= previewUrl %>">
+        Your browser does not support video playback.
+      </video>
+    <% } else if (file.file_type === 'image') { %>
+      <img src="<%= previewUrl %>" alt="<%= file.original_name %>">
+    <% } else if (file.file_type === 'audio') { %>
+      <div class="audio-card">
+        <p><%= file.original_name %></p>
+        <audio controls <% if (autoplay) { %>autoplay<% } %> <% if (loop) { %>loop<% } %> preload="metadata" src="<%= previewUrl %>">
+          Your browser does not support audio playback.
+        </audio>
+      </div>
+    <% } else if (file.mime_type === 'application/pdf') { %>
+      <embed class="doc" src="<%= previewUrl %>" type="application/pdf">
+    <% } %>
+  </div>
 </body>
 </html>

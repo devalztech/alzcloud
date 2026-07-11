@@ -59,6 +59,18 @@ const initDB = async () => {
         app_slug VARCHAR(120),
         api_key VARCHAR(64) UNIQUE NOT NULL,
         revoked BOOLEAN DEFAULT false,
+        last_rotated_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS webhooks (
+        id SERIAL PRIMARY KEY,
+        api_app_id INTEGER REFERENCES api_apps(id) ON DELETE CASCADE,
+        url VARCHAR(500) NOT NULL,
+        events JSONB DEFAULT '["file.uploaded","file.deleted"]',
+        secret VARCHAR(64) NOT NULL,
+        active BOOLEAN DEFAULT true,
+        last_status VARCHAR(20),
+        last_triggered_at TIMESTAMP,
         created_at TIMESTAMP DEFAULT NOW()
       );
       CREATE TABLE IF NOT EXISTS subscriptions (
@@ -75,6 +87,7 @@ const initDB = async () => {
       CREATE TABLE IF NOT EXISTS api_logs (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        api_app_id INTEGER REFERENCES api_apps(id) ON DELETE SET NULL,
         endpoint VARCHAR(255),
         method VARCHAR(10),
         status_code INTEGER,
@@ -89,7 +102,15 @@ const initDB = async () => {
       ALTER TABLE plans ADD COLUMN IF NOT EXISTS max_api_apps INTEGER DEFAULT 0;
       ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS billing_cycle VARCHAR(10) DEFAULT 'monthly';
       ALTER TABLE api_apps ADD COLUMN IF NOT EXISTS app_slug VARCHAR(120);
+      ALTER TABLE api_apps ADD COLUMN IF NOT EXISTS last_rotated_at TIMESTAMP;
+      ALTER TABLE api_logs ADD COLUMN IF NOT EXISTS api_app_id INTEGER REFERENCES api_apps(id) ON DELETE SET NULL;
       ALTER TABLE files ADD COLUMN IF NOT EXISTS api_app_id INTEGER REFERENCES api_apps(id) ON DELETE SET NULL;
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_api_logs_app_created ON api_logs (api_app_id, created_at);
+      CREATE INDEX IF NOT EXISTS idx_webhooks_app_active ON webhooks (api_app_id, active);
+      CREATE INDEX IF NOT EXISTS idx_files_api_app ON files (api_app_id);
     `);
 
     // Plan matrix. storage_limit = -1 means unlimited (Free: capped per-file,

@@ -161,12 +161,24 @@ const uploadFile = async (buffer, filename, mimeType) => {
 };
 
 // ── Stream download a file from Telegram by message_id ───────────────────────
-// Called by the /free/... and /api/... express routes (see routes/index.js)
-const streamFileToResponse = async (messageId, res) => {
+// Called by the /free/..., /api/... and /embed/... express routes.
+//
+// opts:
+//   range     — raw "Range" request header, e.g. "bytes=0-1023". Honored for
+//               documents (video/audio/other files) so <video>/<audio> tags
+//               can seek/scrub properly and mobile browsers will play at all —
+//               most mobile players refuse progressive playback of large
+//               files from a server that doesn't support Range.
+//   sizeParam — "small" | "medium" | "large" | "original", images only. Maps
+//               onto the PhotoSize variants Telegram already generates on
+//               upload, so this needs no local image-processing dependency.
+//   download  — when true, sets Content-Disposition: attachment so the
+//               response is force-downloaded instead of rendered inline.
+const streamFileToResponse = async (messageId, res, opts = {}) => {
+  const { range, sizeParam, download } = opts;
   const client = await getClient();
   const channelId = process.env.TELEGRAM_CHANNEL_ID;
 
-  // Fetch the message to get media
   const messages = await client.getMessages(channelId, {
     ids: [parseInt(messageId)],
   });
@@ -180,40 +192,102 @@ const streamFileToResponse = async (messageId, res) => {
 
   if (!media) throw new Error('No media in this message');
 
-  // Get file size for Content-Length header
-  let fileSize = 0;
-  let fileName = 'file';
-  let mimeType = 'application/octet-stream';
+  let aborted = false;
+  res.on('close', () => { aborted = true; });
 
-  if (media.document) {
-    fileSize = Number(media.document.size);
-    mimeType = media.document.mimeType || mimeType;
-    const nameAttr = media.document.attributes?.find(a => a.className === 'DocumentAttributeFilename');
-    if (nameAttr) fileName = nameAttr.fileName;
-  } else if (media.photo) {
-    mimeType = 'image/jpeg';
-    fileName = 'photo.jpg';
+  // ── Photos: served whole, at a Telegram-native size variant ──────────────
+  // Thumbnails are small (a few KB to ~100KB) so there's no real benefit to
+  // range-slicing them — one shot download keeps this path simple.
+  if (media.photo) {
+    const sizes = (media.photo.sizes || []).filter(
+      s => s.className && s.className !== 'PhotoSizeEmpty' && s.className !== 'PhotoStrippedSize'
+    );
+    let thumb = sizes.length ? sizes[sizes.length - 1] : undefined; // original/largest
+    if (sizeParam && sizeParam !== 'original' && sizes.length) {
+      const index = {
+        small: 0,
+        medium: Math.floor((sizes.length - 1) / 2),
+        large: sizes.length - 1,
+      }[sizeParam];
+      if (index !== undefined) thumb = sizes[Math.min(index, sizes.length - 1)];
+    }
+
+    const buffer = await client.downloadMedia(media, thumb ? { thumb, workers: 4 } : { workers: 4 });
+    if (aborted) return;
+
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Disposition', `${download ? 'attachment' : 'inline'}; filename="photo.jpg"`);
+    if (buffer) res.setHeader('Content-Length', buffer.length);
+    return res.end(buffer);
   }
 
+  // ── Documents: video/audio/generic files, with real Range support ────────
+  if (!media.document) throw new Error('Unsupported media type');
+
+  const doc = media.document;
+  const fileSize = Number(doc.size);
+  const mimeType = doc.mimeType || 'application/octet-stream';
+  const nameAttr = doc.attributes?.find(a => a.className === 'DocumentAttributeFilename');
+  const fileName = nameAttr ? nameAttr.fileName : 'file';
+
+  let start = 0;
+  let end = fileSize > 0 ? fileSize - 1 : undefined;
+  let status = 200;
+
+  if (range && fileSize > 0) {
+    const match = /bytes=(\d*)-(\d*)/.exec(range);
+    if (match) {
+      if (match[1]) start = parseInt(match[1], 10);
+      if (match[2]) end = parseInt(match[2], 10);
+      else end = fileSize - 1;
+
+      if (isNaN(start) || start >= fileSize || start > end) {
+        res.status(416);
+        res.setHeader('Content-Range', `bytes */${fileSize}`);
+        return res.end();
+      }
+      status = 206;
+    }
+  }
+
+  res.status(status);
   res.setHeader('Content-Type', mimeType);
-  res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
-  if (fileSize) res.setHeader('Content-Length', fileSize);
+  res.setHeader('Accept-Ranges', 'bytes');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Disposition', `${download ? 'attachment' : 'inline'}; filename="${fileName}"`);
+  if (fileSize) {
+    if (status === 206) {
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+      res.setHeader('Content-Length', end - start + 1);
+    } else {
+      res.setHeader('Content-Length', fileSize);
+    }
+  }
 
-  // Stream in 512KB chunks
+  // Stream in 512KB chunks, honoring the requested range window
   const CHUNK = 512 * 1024;
-  let offset = 0;
+  let offset = start;
+  const target = end !== undefined ? end : Infinity;
 
-  while (true) {
-    const chunk = await client.downloadMedia(media, {
-      start: offset,
-      end: Math.min(offset + CHUNK - 1, fileSize > 0 ? fileSize - 1 : Infinity),
-      workers: 4,
-    });
+  try {
+    while (offset <= target && !aborted) {
+      const chunkEnd = Math.min(offset + CHUNK - 1, target);
+      const chunk = await client.downloadMedia(media, {
+        start: offset,
+        end: chunkEnd,
+        workers: 4,
+      });
 
-    if (!chunk || chunk.length === 0) break;
-    res.write(chunk);
-    offset += chunk.length;
-    if (fileSize > 0 && offset >= fileSize) break;
+      if (!chunk || chunk.length === 0) break;
+      res.write(chunk);
+      offset += chunk.length;
+      if (fileSize > 0 && offset > target) break;
+    }
+  } catch (e) {
+    console.error('Stream chunk error:', e.message);
   }
 
   res.end();

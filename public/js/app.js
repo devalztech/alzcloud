@@ -265,4 +265,40 @@ document.addEventListener('DOMContentLoaded', () => {
       navigator.clipboard.writeText(btn.dataset.copyKey).then(() => alzToast('Key copied!', 'success'));
     });
   });
+
+  document.querySelectorAll('[data-rotate-app]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.rotateApp;
+      const name = btn.dataset.name || 'this app';
+      alzModal({
+        title: 'Rotate API key', body: `Generate a new key for <strong>${name}</strong>? The old key stops working immediately — update it anywhere it's in use.`,
+        type: 'warn', confirmText: 'Rotate key', cancelText: 'Cancel',
+        onConfirm: async () => {
+          try {
+            const r = await fetch('/apps/' + id + '/rotate', { method: 'POST', headers: { 'X-CSRF-Token': alzCsrfToken() } });
+            const d = await r.json();
+            if (d.success) { alzToast('Key rotated. Reloading…', 'success'); setTimeout(() => location.reload(), 700); }
+            else alzToast(d.error || 'Rotate failed.', 'error');
+          } catch (e) { alzToast('Rotate failed.', 'error'); }
+        }
+      });
+    });
+  });
+
+  document.querySelectorAll('[data-toggle-revoke]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.toggleRevoke;
+      const revoked = btn.dataset.revoked === 'true';
+      try {
+        const r = await fetch('/apps/' + id, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': alzCsrfToken() },
+          body: JSON.stringify({ revoked })
+        });
+        const d = await r.json();
+        if (d.success) { alzToast(revoked ? 'App paused.' : 'App activated.', 'success'); location.reload(); }
+        else alzToast(d.error || 'Update failed.', 'error');
+      } catch (e) { alzToast('Update failed.', 'error'); }
+    });
+  });
 });
