@@ -11,7 +11,7 @@ exports.getPlans = async (req, res) => {
       queryError: req.query.error || null
     });
   } catch (e) {
-    console.error('Plans error:', e);
+    console.error('Plans error:', e.message, e.stack);
     res.status(500).render('pages/error', { title: 'Error', message: 'Could not load plans. Please try again later.', user: res.locals.user });
   }
 };

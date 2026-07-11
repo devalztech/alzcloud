@@ -49,7 +49,7 @@ exports.getDashboard = async (req, res) => {
       adminUser: req.user,
     });
   } catch (e) {
-    console.error('Admin dashboard error:', e);
+    console.error('Admin dashboard error:', e.message, e.stack);
     res.status(500).render('pages/error', { title: 'Error', message: 'Admin panel failed to load.', user: req.user });
   }
 };
@@ -73,7 +73,7 @@ exports.getUsers = async (req, res) => {
     });
     res.render('pages/admin-users', { title: 'Users', users: rows, search, planFilter: plan });
   } catch (e) {
-    console.error('Admin users error:', e);
+    console.error('Admin users error:', e.message, e.stack);
     res.status(500).render('pages/error', { title: 'Error', message: 'Could not load users.', user: req.user });
   }
 };
@@ -126,7 +126,7 @@ exports.updatePlan = async (req, res) => {
     ]);
     res.json({ success: true });
   } catch (e) {
-    console.error('Plan update error:', e);
+    console.error('Plan update error:', e.message, e.stack);
     res.status(500).json({ error: 'Plan update failed.' });
   }
 };

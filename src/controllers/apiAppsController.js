@@ -27,7 +27,7 @@ exports.page = async (req, res) => {
       usedThisMonth: parseInt(countRows[0].count),
     });
   } catch (e) {
-    console.error('API apps page error:', e);
+    console.error('API apps page error:', e.message, e.stack);
     res.status(500).render('pages/error', { title: 'Error', message: 'Could not load your API apps.', user: req.user });
   }
 };
@@ -79,7 +79,7 @@ exports.create = async (req, res) => {
     );
     res.status(201).json({ success: true, app: rows[0] });
   } catch (e) {
-    console.error('Create API app error:', e);
+    console.error('Create API app error:', e.message, e.stack);
     res.status(500).json({ error: 'Could not create API app.' });
   }
 };
@@ -110,7 +110,7 @@ exports.rotate = async (req, res) => {
     );
     res.json({ success: true, app: updated[0] });
   } catch (e) {
-    console.error('Rotate API key error:', e);
+    console.error('Rotate API key error:', e.message, e.stack);
     res.status(500).json({ error: 'Could not rotate API key.' });
   }
 };

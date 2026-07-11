@@ -176,8 +176,8 @@ exports.uploadFile = async (req, res) => {
     fireWebhookEvent(req.apiApp.id, 'file.uploaded', serialized);
     res.status(201).json({ success: true, ...serialized });
   } catch (e) {
-    console.error('API Upload error:', e);
-    res.status(500).json({ error: 'Upload failed: ' + e.message });
+    console.error('API Upload error:', e.message, e.stack);
+    res.status(500).json({ error: 'Upload failed. Please try again.' });
   } finally {
     if (tempPath) { try { fs.unlinkSync(tempPath); } catch (_) {} }
   }

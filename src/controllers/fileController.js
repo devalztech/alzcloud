@@ -37,7 +37,7 @@ exports.getDashboard = async (req, res) => {
       upgraded: req.query.upgraded === '1'
     });
   } catch (e) {
-    console.error('Dashboard error:', e);
+    console.error('Dashboard error:', e.message, e.stack);
     res.status(500).render('pages/error', { title: 'Error', message: 'Could not load dashboard.', user: req.user });
   }
 };
@@ -83,8 +83,8 @@ exports.uploadFile = async (req, res) => {
 
     res.json({ success: true, slug, url: `${process.env.APP_URL}/f/${slug}` });
   } catch (e) {
-    console.error('Upload error:', e);
-    res.status(500).json({ error: 'Upload failed: ' + e.message });
+    console.error('Upload error:', e.message, e.stack);
+    res.status(500).json({ error: 'Upload failed. Please try again.' });
   } finally {
     if (tempPath) { try { fs.unlinkSync(tempPath); } catch (_) {} }
   }
@@ -127,8 +127,8 @@ exports.anonymousUpload = async (req, res) => {
       download_url: downloadUrl,
     });
   } catch (e) {
-    console.error('Anonymous upload error:', e);
-    res.status(500).json({ error: 'Upload failed: ' + e.message });
+    console.error('Anonymous upload error:', e.message, e.stack);
+    res.status(500).json({ error: 'Upload failed. Please try again.' });
   } finally {
     if (tempPath) { try { fs.unlinkSync(tempPath); } catch (_) {} }
   }
@@ -165,7 +165,7 @@ exports.viewFile = async (req, res) => {
       appUrl: process.env.APP_URL || ''
     });
   } catch (e) {
-    console.error('View file error:', e);
+    console.error('View file error:', e.message, e.stack);
     res.status(500).render('pages/error', { title: 'Error', message: 'Could not retrieve this file.', user: res.locals.user });
   }
 };
@@ -180,7 +180,7 @@ exports.deleteFile = async (req, res) => {
     await pool.query('DELETE FROM files WHERE id=$1', [file.id]);
     res.json({ success: true });
   } catch (e) {
-    console.error('Delete error:', e);
+    console.error('Delete error:', e.message, e.stack);
     res.status(500).json({ error: 'Delete failed.' });
   }
 };
